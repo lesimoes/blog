@@ -1,0 +1,119 @@
+---
+title: 'Refactoring as a Deliberate Practice'
+date: '2025-09-01'
+lastmod: '2025-09-01'
+tags: ['refactoring', 'clean code', 'best practices']
+draft: false
+summary: 'Why refactoring should be a deliberate practice in your team and how simple techniques can add more knowledge to the code.'
+images: ['/static/images/twitter-card.png']
+---
+
+## Context
+
+In any software company, a situation like this has probably happened:
+
+**Manager:** What are you doing right now?  
+**Developer:** I’m refactoring this part of the code…  
+**Manager:** Refactoring? Is that like a performance optimization?  
+**Developer:** No, I’m just organizing the code.  
+**Manager:** Why? Is it buggy?  
+**Developer:** No, I’m just cleaning the code a little.  
+**Manager:** Then why didn’t you write it clean the first time?!
+
+So, who’s right here? Where’s the problem? Wait — is there even a problem?  
+My mission today is to bring some important points about the deliberate practice of refactoring. Hopefully, you’ll spread the word in your team and, if I succeed, even convince more managers of its value.
+
+<TOCInline toc={props.toc} exclude="Introduction" />
+
+## Refactoring doesn’t sell
+
+And it doesn’t sell anywhere! Search through tech influencer channels and courses and you’ll see little to no content about refactoring. In comparison, there are endless tutorials on the latest hype library or yet another CRUD project from scratch.
+
+Bootcamps and courses are no different… What sells is learning a new tool, a new project for your portfolio — something concrete that others can easily see.
+
+But this practice is completely detached from the actual job market, especially early on. Do you really think a company will hire a junior dev to start a brand new system (from scratch) that’s basically just a CRUD? No way. And if it happens, that’s already a red flag.
+
+The most common scenario is you joining an existing project, already in production, with real clients. You’ll be doing maintenance. That’s what happens. And one way to prepare for this scenario is to practice deliberate refactoring.
+
+## What is deliberate practice?
+
+Deliberate practice is when you intentionally decide to do something, as opposed to being carried away by circumstance. For example, when you set aside time in your day for a recreational activity — you planned it. Unless the world ends at that moment, you’ll be there, immersed in the deliberate activity.
+
+Refactoring means changing the structure of the code without changing its behavior. That second part is crucial — _without changing the behavior_ — meaning refactoring commits to nothing beyond improving the code’s structure.
+
+Keeping refactoring as a deliberate practice is about making it part of your routine: you set aside time for it and focus only on that.
+
+## Why is it important?
+
+Quick answer: Because we don’t write it clean the first time! Simple as that.
+
+Since we don’t write it clean right away, we need to improve later. And the _why_ behind that is what I want to emphasize.
+
+We need to improve later because we always write code for someone else — maybe for yourself tomorrow, maybe for your team. The goal is to leave things a little better than we found them. If that team spirit doesn’t resonate, think selfishly: make things better for _yourself_ tomorrow.
+
+> “I’m not a great programmer; I’m just a good programmer with great habits.”  
+> — Kent Beck
+
+## Gaining more knowledge of the code
+
+Refactoring, like any other skill, requires practice. Sometimes it happens organically, but there are also techniques to guide it.
+
+Here are a few techniques I use to refactor and gain or add more knowledge to the code. They’re simple, quick, and I apply them in two moments:
+
+- **Before writing new code:** I start by refactoring. It helps me understand the code better.
+- **After writing new code:** I clean things up for my future self and the team, making it clearer.
+
+### 1. Remove magic numbers/strings
+
+Example in JavaScript:
+
+```js
+// bad
+if (status === 'pending') {
+  ...
+}
+
+// better
+if (status === ORDER.PENDING) {
+  ...
+}
+```
+
+This adds meaning and centralizes the status in one place.
+
+### 2. Rename things
+
+As you spend more time on a task, your understanding deepens. It’s common to start with shallow names and refine them later. Renaming improves clarity and adds more knowledge.
+
+### 3. Extract functions
+
+A classic but essential technique: extract logic into functions, modules, or hooks (in React). The new place often makes the code more cohesive and clearer for others.
+
+### 4. Remove messy ternaries
+
+Example:
+
+```jsx
+// bad
+return <div>{status === ORDER.PENDING ? <div>...10 lines...</div> : <div>...10 lines...</div>}</div>
+
+// better
+if (status === ORDER.PENDING) {
+  return <div>...10 lines...</div>
+}
+
+return <div>...10 lines...</div>
+```
+
+If needed, extract the ternary into a separate component.
+
+## An essential tool: tests
+
+To wrap it up, one tool greatly supports refactoring: **automated tests**.  
+They provide robustness and confidence, acting like “strict little robots” ready to catch even the smallest mistakes. With good tests, you can refactor without fear.
+
+## Know when to stop
+
+Refactoring is important, but so is knowing when to stop. The goal is to support maintainability and consistent delivery of value — not polish the code forever. A good rule of thumb: don’t spend more than 1 hour or 10% of the task time refactoring. If it takes more, plan dedicated time for it.
+
+With deliberate and constant practice, you’ll spend just a few minutes refactoring. Your future self — and your team — will thank you!

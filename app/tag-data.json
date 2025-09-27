@@ -1,1 +1,9 @@
-{"nuai":2}
+{
+  "node": 1,
+  "go": 1,
+  "concurrency": 1,
+  "parallelism": 1,
+  "refactoring": 1,
+  "clean-code": 1,
+  "best-practices": 1
+}

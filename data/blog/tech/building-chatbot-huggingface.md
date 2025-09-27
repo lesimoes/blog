@@ -1,0 +1,108 @@
+---
+title: 'Building a Chatbot with HuggingFace and Streamlit'
+date: '2025-02-01'
+lastmod: '2025-02-01'
+draft: false
+summary: 'How to create a chatbot using HuggingFace models, Spaces, and Streamlit, and add your own knowledge base.'
+---
+
+## Introduction
+
+We are going to use the models available on HuggingFace, Spaces, and Python.
+
+HuggingFace is a global repository where you can find hundreds of pre-trained LLMs — meaning someone has already done the heavy lifting of training models with billions of parameters. On top of that, we can also use HuggingFace’s infrastructure to run these models in the cloud, and if that’s not enough, we can also create **Spaces**, which is a way to host applications.
+
+Create an account on HuggingFace and then go to **Spaces → New Space**.
+
+Create a new Space with a name and description. In **Select the Space SDK**, choose **Streamlit**.
+
+Streamlit is a tool that lets you build interfaces for applications absurdly fast.
+
+In **Space Hardware**, leave the default option (the free version) and create your Space. I recommend making it public and sharing it with me afterward.
+
+Clone the Space to your local machine, and let’s get started.
+
+Go to the repository of the main model we’ll be using and request access: **Mistral**.
+
+## Code
+
+Create a file named `requirements.txt` with the dependencies we’ll use in the project:
+
+```
+transformers
+huggingface_hub
+streamlit
+langchain_core
+langchain_community
+langchain_huggingface
+langchain_text_splitters
+accelerate
+watchdog
+tqdm
+sentencepiece
+langchain
+langchain-huggingface
+```
+
+Then, create a file named `app.py` with this content.
+
+The `app.py` file is the heart of the application. This is where I load our main model — `Mistral-7B-Instruct-v0.3` — and the translation model for Brazilian Portuguese: `Helsinki-NLP/opus-mt-tc-big-en-pt`.
+
+The `get_response` function is where I apply the models. For example, in the section where I call `get_llm_hf_inference`.
+
+In this section, I load the main model (Mistral), its task (“what’s your function”), one of many available NLP tasks, and its temperature. The temperature controls how creative the chatbot will be, with `0.1` being very conservative and `1.0` being highly creative.
+
+## Adding your knowledge base
+
+Back in `get_response`, you’ll notice the `knowledge_context` section:
+
+```python
+prompt = PromptTemplate.from_template(
+    (
+        "[INST] {system_message}"
+        "{knowledge_context}\n"
+        "\nCurrent Conversation:\n{chat_history}\n\n"
+        "\nUser: {user_text}.\n [/INST]"
+        "\nAI:"
+    )
+)
+```
+
+This is where the magic happens. I could just use the Mistral model, but I want a **virtual assistant** — which means it needs an extra knowledge base.
+
+This knowledge base can be personal (study notes, WhatsApp conversations) or, in my case, I fed the chatbot with a dataset of **Symptoms and Diagnoses** extracted from a health website.
+
+In the file `knowledge_base.py`, I load the chatbot with the content from `database.txt`.
+
+My dataset follows this format:
+
+```
+Symptom: symptom_name
+content_about_the_symptom
+```
+
+That’s why `knowledge_base.py` knows how to parse this format and feed the chatbot. You can use the same format or create your own and adapt the code.
+
+Once this is done, create your knowledge base for your own context.
+
+You could also create a web scraper pointing to any site and generate your own dataset — after all, web scraping is one of the pillars of LLMs.
+
+## Deployment
+
+Now just push the changes to HuggingFace with `git push`.
+
+Wait a few minutes and refresh the page.
+
+## Final thoughts
+
+Check out the parameters in the code, especially the `system_message` — this is where you configure the chatbot’s personality.
+
+In the example below, the chatbot recommended some medicines. This can be prevented by adjusting the `system_message`.
+
+**Important:** This project is only for demonstration purposes. Do not take any chatbot recommendation as medical advice. For health issues, always consult a doctor.
+
+---
+
+The full project can be found here:
+
+See you!
