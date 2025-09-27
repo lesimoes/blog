@@ -1,23 +1,12 @@
-version: "3.9"
-
+version: "3.8"
 services:
   web:
-    image: node:20
-    working_dir: /workspace
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "3005:3005"
+      - "3000:3000"
     environment:
-      - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-      - WATCHPACK_POLLING=true
-      - CHOKIDAR_USEPOLLING=true
-      - PORT=3005
-    volumes:
-      - ./:/workspace:cached
-      - web-node-modules:/workspace/node_modules
-    command: sh -c "corepack enable && corepack prepare yarn@3.6.1 --activate && yarn install --immutable || yarn install && yarn dev -p 3005 -H 0.0.0.0"
-    stdin_open: true
-    tty: true
-
-volumes:
-  web-node-modules: {}
+      NODE_ENV: production
+    working_dir: /app
+    command: yarn start -p 3000
