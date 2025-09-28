@@ -1,0 +1,69 @@
+---
+title: 'Chrome DevTools MCP'
+date: '2025-09-29'
+lastmod: '2025-09-29'
+draft: false
+summary: 'Explorando como o Chrome DevTools MCP conecta LLMs com depuração e testes de performance no mundo real.'
+images: ['/static/images/mcp-devtools.png']
+tags: ['MCP', 'Chrome DevTools', 'LLM', 'Depuração', 'Performance']
+authors: ['Leandro Simões']
+---
+
+## Introdução
+
+Se você já usou ferramentas de LLM para programar como Cursor, Codex ou Claude, provavelmente já passou por isso: você escreve um monte de regras e descrições do que quer que o LLM implemente. Ele gera um monte de código e… boom, nada funciona! Você tenta de novo, cola todos os logs de erro, ele escreve mais código e… baam! Continua sem funcionar.
+
+Pois bem, se isso acontece no mundo frontend, o Google pode ter uma novidade que ajuda a gastar menos tokens com código desnecessário: **Chrome DevTools MCP**.
+
+Neste post vou descrever meus testes com esse MCP para resolver problemas reais. Vamos nessa!
+
+## Uma nova forma de depurar
+
+Primeiro de tudo, caso você tenha “dormido” nos últimos meses, MCP é um protocolo aberto para conectar LLMs de texto ao mundo real. Não é a definição oficial, mas é como eu enxergo: imagine digitar um comando em linguagem natural em um LLM e ele ser capaz de rodar outras aplicações. Isso é possível desde que a aplicação tenha suporte a MCP.
+
+Você pode ver uma explicação mais detalhada [aqui](https://developer.chrome.com/blog/chrome-devtools-mcp) ou conferir como instalar na sua ferramenta favorita de LLM [aqui](https://github.com/ChromeDevTools/chrome-devtools-mcp/?tab=readme-ov-file).
+
+Eu primeiro instalei no `codex cli` e criei um projeto em React + Vite com alguns problemas de performance, como este:
+
+Criei um formulário com vários campos, mas um deles tinha validação lenta: o campo de e-mail. Você pode conferir o [repositório](https://github.com/lesimoes/chrome-devtools-mcp-example).
+
+Depois abri o Codex no terminal e digitei:
+
+```md
+Use MCP 'chrome-devtools' for:
+
+1. Run this app and open http://localhost:5174/issue3
+2. Run a performance check while filling all the fields
+3. Describe which fields are causing performance issues
+4. Fix the performance issues
+```
+
+É só esperar a mágica acontecer. O MCP abriu uma nova instância do Chrome, preencheu todos os campos e rodou o teste de performance no DevTools. Depois descreveu o problema e corrigiu. Maravilha!
+
+_A solução em si não faz parte deste post, mas você pode ver no repositório._
+
+Você pode até adicionar um novo item na lista de tarefas, como este:
+
+```md
+5. I'm using Codex, create an AGENT to do this check automatically, like a UI test
+```
+
+No repositório eu criei um [AGENT](https://github.com/lesimoes/chrome-devtools-mcp-example/blob/main/.codex/agents/issue3-perf-devtools.yaml) e um [Cursor Command](https://github.com/lesimoes/chrome-devtools-mcp-example/blob/main/.cursor/commands.json) para transformar isso em um teste de UI — só para o caso de alguém inserir o problema de novo.
+
+Você também pode pedir para o DevTools MCP rodar um teste de performance por um tempo definido, como neste exemplo:
+
+```md
+Use MCP 'chrome-devtools' for:
+
+1. Run this app and open http://localhost:5174/issue1
+2. Run a performance check for 10 seconds
+3. Based on results, fix the performance issue in the code
+```
+
+Existem vários outros comandos, como simular velocidade de rede, medir LCP e mais. Você pode usar esse MCP para guiar seus testes, coletar e analisar métricas.
+
+## Conclusão
+
+O Google Chrome DevTools MCP é incrível. Mas como qualquer LLM, você só vai tirar o máximo proveito se for específico em vez de genérico: descreva qual métrica quer medir, por quantos segundos rodar os testes, ou até peça para o MCP te guiar na exploração.
+
+Na hora de otimizar, lembre-se da regra de ouro: primeiro meça, depois mude, depois meça de novo. Se a métrica não mostrar melhora, escolha outra e recomece o processo até encontrar a causa raiz.

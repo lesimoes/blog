@@ -5,7 +5,7 @@ import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
 import PostCard from '@/components/PostCard'
 
-const MAX_DISPLAY = 5
+const MAX_DISPLAY = 9
 
 export default function Home({ posts }) {
   return (
@@ -22,8 +22,8 @@ export default function Home({ posts }) {
         <ul className="flex flex-col md:flex-row flex-wrap divide-y divide-gray-200 dark:divide-gray-700">
           {!posts.length && 'No posts found.'}
           {posts
-            .slice(0, MAX_DISPLAY)
             .filter((post) => post.path.includes('en/'))
+            .slice(0, MAX_DISPLAY)
             .map((post) => {
               return <PostCard key={post.slug} post={post} />
             })}
