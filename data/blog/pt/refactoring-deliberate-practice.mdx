@@ -1,0 +1,119 @@
+---
+title: 'Refatoração como Prática Deliberada'
+date: '2025-09-01'
+lastmod: '2025-09-01'
+tags: ['refatoração', 'código limpo', 'boas práticas']
+draft: false
+summary: 'Por que a refatoração deve ser uma prática deliberada na sua equipe e como técnicas simples podem adicionar mais conhecimento ao código.'
+images: ['/static/images/twitter-card.png']
+---
+
+## Contexto
+
+Em qualquer empresa de software, provavelmente já aconteceu algo assim:
+
+**Gestor:** O que você está fazendo agora?  
+**Dev:** Estou refatorando essa parte do código…  
+**Gestor:** Refatorando? Isso é tipo otimização de performance?  
+**Dev:** Não, só estou organizando o código.  
+**Gestor:** Por quê? Está com bug?  
+**Dev:** Não, só estou dando uma limpada.  
+**Gestor:** Então por que você não escreveu limpo da primeira vez?!
+
+Então, quem está certo aqui? Onde está o problema? Pera — será que existe mesmo um problema?  
+Minha missão hoje é trazer alguns pontos importantes sobre a prática deliberada de refatoração. Com sorte, você vai espalhar isso na sua equipe e, se eu tiver sucesso, até convencer mais gestores do valor dessa prática.
+
+<TOCInline toc={props.toc} exclude="Introdução" />
+
+## Refatoração não vende
+
+E não vende em lugar nenhum! Procure nos canais de influenciadores de tecnologia e cursos e você vai ver pouco ou nenhum conteúdo sobre refatoração. Em comparação, há tutoriais intermináveis sobre a biblioteca do hype do momento ou mais um projeto CRUD do zero.
+
+Bootcamps e cursos não são diferentes… O que vende é aprender uma ferramenta nova, um projeto novo para o portfólio — algo concreto que os outros conseguem ver facilmente.
+
+Mas essa prática está totalmente desconectada do mercado real, especialmente no início. Você realmente acha que uma empresa vai contratar um dev júnior para começar um sistema novo (do zero) que basicamente é só um CRUD? Difícil. E se acontecer, já é um sinal amarelo.
+
+O cenário mais comum é você entrar em um projeto existente, já em produção, com clientes de verdade. Você vai fazer manutenção. É isso que acontece. E uma forma de se preparar para esse cenário é praticar refatoração deliberada.
+
+## O que é prática deliberada?
+
+Prática deliberada é quando você decide intencionalmente fazer algo, em vez de ser levado pela circunstância. Por exemplo, quando você reserva um tempo do seu dia para uma atividade de lazer — você planejou. A menos que o mundo acabe naquele momento, você vai estar lá, imerso na atividade deliberada.
+
+Refatorar é mudar a estrutura do código sem mudar o seu comportamento. Essa segunda parte é crucial — _sem mudar o comportamento_ — ou seja, refatoração não se compromete com nada além de melhorar a estrutura do código.
+
+Manter a refatoração como prática deliberada é torná-la parte da sua rotina: você reserva tempo para isso e foca só nisso.
+
+## Por que é importante?
+
+Resposta rápida: Porque a gente não escreve limpo da primeira vez! Simples assim.
+
+Como não escrevemos limpo de primeira, precisamos melhorar depois. E o _porquê_ disso é o que quero enfatizar.
+
+Precisamos melhorar depois porque sempre escrevemos para outra pessoa — talvez para você mesmo amanhã, talvez para sua equipe. A ideia é deixar as coisas um pouco melhores do que encontramos. Se esse espírito de equipe não bater, pense de forma egoísta: facilite a vida do seu eu de amanhã.
+
+> “I’m not a great programmer; I’m just a good programmer with great habits.”  
+> — Kent Beck
+
+## Ganhar mais conhecimento do código
+
+Refatorar, como qualquer outra habilidade, exige prática. Às vezes acontece de forma orgânica, mas também existem técnicas para guiar.
+
+Aqui vão algumas técnicas que uso para refatorar e ganhar ou adicionar mais conhecimento ao código. Elas são simples, rápidas e aplico em dois momentos:
+
+- **Antes de escrever código novo:** começo refatorando. Ajuda a entender melhor o código.
+- **Depois de escrever código novo:** dou uma limpada para o meu eu do futuro e para a equipe, deixando mais claro.
+
+### 1. Remover números/strings mágicos
+
+Exemplo em JavaScript:
+
+```js
+// ruim
+if (status === 'pending') {
+  ...
+}
+
+// melhor
+if (status === ORDER.PENDING) {
+  ...
+}
+```
+
+Isso adiciona significado e centraliza o status em um único lugar.
+
+### 2. Renomear coisas
+
+Conforme você passa mais tempo em uma tarefa, seu entendimento aprofunda. É comum começar com nomes rasos e refiná-los depois. Renomear melhora a clareza e adiciona mais conhecimento.
+
+### 3. Extrair funções
+
+Uma técnica clássica e essencial: extrair lógica para funções, módulos ou hooks (no React). O novo local geralmente deixa o código mais coeso e mais claro para outras pessoas.
+
+### 4. Remover ternários bagunçados
+
+Exemplo:
+
+```jsx
+// ruim
+return <div>{status === ORDER.PENDING ? <div>...10 lines...</div> : <div>...10 lines...</div>}</div>
+
+// melhor
+if (status === ORDER.PENDING) {
+  return <div>...10 lines...</div>
+}
+
+return <div>...10 lines...</div>
+```
+
+Se precisar, extraia o ternário para um componente separado.
+
+## Uma ferramenta essencial: testes
+
+Para fechar, uma ferramenta dá muito suporte à refatoração: **testes automatizados**.  
+Eles trazem robustez e confiança, atuando como “pequenos robôs rígidos” prontos para pegar até os menores deslizes. Com bons testes, você pode refatorar sem medo.
+
+## Saiba quando parar
+
+Refatorar é importante, mas também é importante saber quando parar. O objetivo é apoiar a mantenibilidade e a entrega consistente de valor — não polir o código para sempre. Uma boa regra prática: não gaste mais de 1 hora ou 10% do tempo da tarefa refatorando. Se levar mais que isso, planeje um tempo dedicado.
+
+Com prática deliberada e constante, você vai gastar apenas alguns minutos refatorando. Seu eu do futuro — e sua equipe — vão agradecer!

@@ -1,0 +1,85 @@
+---
+title: 'Concorrência ≠ Paralelismo'
+date: '2025-09-10'
+lastmod: '2025-09-10'
+tags: ['node', 'go', 'concorrencia', 'paralelismo']
+draft: false
+summary: 'Entenda a diferença entre concorrência e paralelismo, como Go e Node lidam com isso, e pare de culpar o estagiário pelo gargalo errado.'
+images: ['/static/images/twitter-card.png']
+---
+
+## Contexto
+
+Sim, este é um tópico bem teórico. Mas se você não entender direito, vai acabar culpando o banco, o framework ou até o estagiário, quando na verdade o problema é que você confundiu **concorrência com paralelismo**.
+
+Concorrência e paralelismo não são a mesma coisa.  
+Concorrência é organizar várias tarefas ao mesmo tempo, mesmo que apenas uma esteja de fato executando em um dado instante.  
+Paralelismo é executar várias tarefas simultaneamente em diferentes núcleos de CPU.
+
+Imagine um chef picando legumes, mexendo a panela e conferindo o forno, alternando entre tarefas — isso é concorrência.  
+Agora imagine três chefs fazendo tudo ao mesmo tempo — isso é paralelismo.
+
+Sim, eu tenho assistido Master Chef demais 👨‍🍳
+
+<TOCInline toc={props.toc} exclude="Introdução" />
+
+## Go e Node
+
+Em **Go**, temos goroutines. Elas são como _green threads_: unidades leves de execução criadas pelo runtime e multiplexadas sobre poucas threads reais do SO. Tradução: você pode criar milhares ou até milhões de goroutines sem a sobrecarga maluca que teria se tentasse criar o mesmo número de threads do SO.  
+Detalhe importante: se você usar `net/http`, toda requisição já recebe sua própria goroutine automaticamente. Concorrência vem de fábrica.
+
+Em **Node**, as coisas são um pouco diferentes. O runtime já lida muito bem com I/O pesado por meio do _event loop_, sem precisar de threads extras. É por isso que você consegue atender um monte de requisições simultâneas de API sem pensar em “criar goroutines” — o modelo assíncrono do Node faz isso por você.  
+Mas quando o problema é CPU-bound (criptografia, compressão, cálculos pesados), o event loop vira gargalo. Aí entram os **Worker Threads**. Ao contrário das goroutines, eles são threads reais do SO, cada um com sua própria instância do V8 e heap. Mais pesados, sim, mas resolvem quando você realmente precisa paralelizar tarefas custosas.
+
+## Exemplos de código
+
+### Go
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	go fmt.Println("running in goroutine") // executa concorrentemente
+	fmt.Println("running in main")
+	time.Sleep(time.Second) // espera a goroutine terminar
+}
+```
+
+### Node
+
+```js
+// main.js
+const { Worker } = require('node:worker_threads')
+
+const worker = new Worker('./worker.js')
+worker.on('message', (msg) => console.log(msg))
+
+console.log('running in main')
+
+// worker.js
+const { parentPort } = require('node:worker_threads')
+parentPort.postMessage('running in worker thread')
+```
+
+## Conclusão
+
+- Concorrência ≠ Paralelismo. Você pode ter concorrência sem múltiplos núcleos.
+- Go aposta em goroutines para lidar com I/O e também pode paralelizar tarefas de CPU quando necessário.
+- Node aposta no event loop para I/O e em Worker Threads para trabalho pesado de CPU.
+
+## Referências
+
+- [Worker Threads (Node, threads reais do SO)](https://nodejs.org/api/worker_threads)
+- [Goroutines (Go, threads em nível de usuário)](https://go.dev/doc/go_for_cpp_programmers)
+- [net/http (Go, 1 goroutine por requisição)](https://pkg.go.dev/net/http#Server.Serve)
+
+No fim do dia, não é sobre memorizar nomes chiques — é sobre entender como o runtime da sua linguagem lida com concorrência e quando você realmente precisa de paralelismo. Caso contrário, você vai perder horas “otimizando” onde não importa e vai errar o gargalo real.
+
+---
+
+No próximo post, vamos falar sobre paralelismo, processos, goroutines e worker threads (de novo), e clustering.

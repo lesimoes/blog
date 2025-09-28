@@ -1,0 +1,108 @@
+---
+title: 'Construindo um Chatbot com HuggingFace e Streamlit'
+date: '2025-02-01'
+lastmod: '2025-02-01'
+draft: false
+summary: 'Como criar um chatbot usando modelos do HuggingFace, Spaces e Streamlit, e adicionar sua própria base de conhecimento.'
+---
+
+## Introdução
+
+Vamos usar os modelos disponíveis no HuggingFace, Spaces e Python.
+
+HuggingFace é um repositório global onde você encontra centenas de LLMs pré-treinados — ou seja, alguém já fez o trabalho pesado de treinar modelos com bilhões de parâmetros. Além disso, podemos usar a infraestrutura do próprio HuggingFace para rodar esses modelos na nuvem e, se isso não for suficiente, podemos criar **Spaces**, que são uma forma de hospedar aplicações.
+
+Crie uma conta no HuggingFace e depois vá em **Spaces → New Space**.
+
+Crie um novo Space com nome e descrição. Em **Select the Space SDK**, escolha **Streamlit**.
+
+Streamlit é uma ferramenta que permite construir interfaces para aplicações de forma absurdamente rápida.
+
+Em **Space Hardware**, deixe a opção padrão (a versão gratuita) e crie o seu Space. Recomendo deixá-lo público e depois compartilhar comigo.
+
+Clone o Space para a sua máquina local e vamos começar.
+
+Acesse o repositório do modelo principal que vamos usar e solicite acesso: **Mistral**.
+
+## Código
+
+Crie um arquivo chamado `requirements.txt` com as dependências que usaremos no projeto:
+
+```
+transformers
+huggingface_hub
+streamlit
+langchain_core
+langchain_community
+langchain_huggingface
+langchain_text_splitters
+accelerate
+watchdog
+tqdm
+sentencepiece
+langchain
+langchain-huggingface
+```
+
+Depois, crie um arquivo chamado `app.py` com este conteúdo.
+
+O `app.py` é o coração da aplicação. É aqui que eu carrego nosso modelo principal — `Mistral-7B-Instruct-v0.3` — e o modelo de tradução para português brasileiro: `Helsinki-NLP/opus-mt-tc-big-en-pt`.
+
+A função `get_response` é onde aplico os modelos. Por exemplo, na seção em que chamo `get_llm_hf_inference`.
+
+Nessa parte, eu carrego o modelo principal (Mistral), sua tarefa ("qual é a sua função"), uma dentre várias tarefas de PLN disponíveis, e a sua temperatura. A temperatura controla o quão criativo o chatbot será, onde `0.1` é bastante conservador e `1.0` é altamente criativo.
+
+## Adicionando sua base de conhecimento
+
+De volta ao `get_response`, você vai notar a seção `knowledge_context`:
+
+```python
+prompt = PromptTemplate.from_template(
+    (
+        "[INST] {system_message}"
+        "{knowledge_context}\n"
+        "\nCurrent Conversation:\n{chat_history}\n\n"
+        "\nUser: {user_text}.\n [/INST]"
+        "\nAI:"
+    )
+)
+```
+
+É aqui que a mágica acontece. Eu poderia usar só o modelo Mistral, mas quero um **assistente virtual** — o que significa que ele precisa de uma base de conhecimento extra.
+
+Essa base pode ser pessoal (anotações de estudo, conversas do WhatsApp) ou, no meu caso, alimentei o chatbot com um dataset de **Sintomas e Diagnósticos** extraído de um site de saúde.
+
+No arquivo `knowledge_base.py`, eu carrego o chatbot com o conteúdo de `database.txt`.
+
+Meu dataset segue este formato:
+
+```
+Symptom: symptom_name
+content_about_the_symptom
+```
+
+É por isso que o `knowledge_base.py` sabe como fazer o parse desse formato e alimentar o chatbot. Você pode usar o mesmo formato ou criar o seu e adaptar o código.
+
+Feito isso, crie a sua base de conhecimento para o seu próprio contexto.
+
+Você também pode criar um web scraper apontando para qualquer site e gerar seu próprio dataset — afinal, web scraping é um dos pilares dos LLMs.
+
+## Deploy
+
+Agora é só fazer `git push` para o HuggingFace.
+
+Espere alguns minutos e atualize a página.
+
+## Considerações finais
+
+Confira os parâmetros no código, especialmente o `system_message` — é aqui que você configura a personalidade do chatbot.
+
+No exemplo abaixo, o chatbot recomendou alguns remédios. Isso pode ser evitado ajustando o `system_message`.
+
+**Importante:** Este projeto é apenas para fins de demonstração. Não tome qualquer recomendação do chatbot como conselho médico. Para questões de saúde, procure sempre um médico.
+
+---
+
+O projeto completo pode ser encontrado aqui:
+
+Até a próxima!
