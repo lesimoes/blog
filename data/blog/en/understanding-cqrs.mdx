@@ -1,0 +1,42 @@
+---
+title: 'Understanding CQRS: Separation of Responsibilities and When to Use It'
+date: '2025-11-13'
+lastmod: '2025-11-13'
+draft: false
+tags: ['best-practices', 'architecture', 'cqrs']
+summary: 'Understanding what responsibilities are separated in CQRS, why it matters, and when it makes sense to use CQRS in a monolith without a distributed database.'
+images: ['/static/images/complexity.png']
+---
+
+## What responsibilities are separated in CQRS, and why does it matter?
+
+In typical CRUD applications, reads and writes share the same data model, for example, the same ORM entity or class.
+That approach often leads to a few problems:
+
+1. The read model loads unnecessary fields and relationships.
+2. Queries become complex and harder to optimize.
+3. The domain and infrastructure layers end up tightly coupled.
+
+CQRS solves this by splitting responsibilities:
+
+A Write Model focused on business rules and invariants.
+
+A Read Model optimized for performance and simplicity (it can even be plain SQL).
+
+This separation keeps your domain clean, your queries fast, and your architecture ready to evolve.
+
+## Does it make sense to use CQRS in a monolith without a distributed database?
+
+Yes, it does, but with some caveats.
+
+CQRS can make sense when read and write complexities diverge significantly, for example, when you have complex business rules on writes and need optimized queries for dashboards or reports on reads.
+
+The key idea is to isolate your domain logic from your read infrastructure.
+You can have a rich Write Model (with Aggregates, Entities, and Value Objects)
+and a simple Read Model (DTOs or direct queries).
+
+This approach can also make it easier to migrate toward a distributed or microservices architecture in the future, without rewriting your core domain logic.
+
+However, it doesn't make sense for simple CRUD applications, systems with low operation volume, or small teams with limited DDD experience.
+
+Also, CQRS doesn't require distribution or separate databases. It's fundamentally a pattern for separating responsibilities.

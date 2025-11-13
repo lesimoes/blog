@@ -1,0 +1,42 @@
+---
+title: 'Entendendo CQRS: Separação de Responsabilidades e Quando Usar'
+date: '2025-11-13'
+lastmod: '2025-11-13'
+draft: false
+tags: ['boas-práticas', 'arquitetura', 'cqrs']
+summary: 'Entendendo quais responsabilidades são separadas no CQRS, por que isso importa, e quando faz sentido usar CQRS em um monolito sem banco de dados distribuído.'
+images: ['/static/images/complexity.png']
+---
+
+## Quais responsabilidades são separadas no CQRS, e por que isso importa?
+
+Em aplicações CRUD típicas, leituras e escritas compartilham o mesmo modelo de dados, por exemplo, a mesma entidade ORM ou classe.
+Essa abordagem frequentemente leva a alguns problemas:
+
+1. O modelo de leitura carrega campos e relacionamentos desnecessários.
+2. Consultas se tornam complexas e mais difíceis de otimizar.
+3. As camadas de domínio e infraestrutura acabam fortemente acopladas.
+
+O CQRS resolve isso separando responsabilidades:
+
+Um Modelo de Escrita focado em regras de negócio e invariantes.
+
+Um Modelo de Leitura otimizado para performance e simplicidade (pode até ser SQL puro).
+
+Essa separação mantém seu domínio limpo, suas consultas rápidas e sua arquitetura pronta para evoluir.
+
+## Faz sentido usar CQRS em um monolito sem banco de dados distribuído?
+
+Sim, faz sentido, mas com algumas ressalvas.
+
+O CQRS pode fazer sentido quando as complexidades de leitura e escrita divergem significativamente, por exemplo, quando você tem regras de negócio complexas em escritas e precisa de consultas otimizadas para dashboards ou relatórios em leituras.
+
+A ideia principal é isolar sua lógica de domínio da sua infraestrutura de leitura.
+Você pode ter um Modelo de Escrita rico (com Agregados, Entidades e Objetos de Valor)
+e um Modelo de Leitura simples (DTOs ou consultas diretas).
+
+Essa abordagem também pode facilitar a migração para uma arquitetura distribuída ou de microsserviços no futuro, sem reescrever sua lógica de domínio central.
+
+No entanto, não faz sentido para aplicações CRUD simples, sistemas com baixo volume de operações ou equipes pequenas com experiência limitada em DDD.
+
+Além disso, o CQRS não requer distribuição ou bancos de dados separados. É fundamentalmente um padrão para separar responsabilidades.
