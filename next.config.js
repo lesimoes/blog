@@ -7,7 +7,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 // You might need to insert additional domains in script-src if you are using external services
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' giscus.app analytics.umami.is;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' giscus.app;
   style-src 'self' 'unsafe-inline';
   img-src * blob: data:;
   media-src *.s3.amazonaws.com;
@@ -67,17 +67,33 @@ module.exports = () => {
     },
     images: {
       domains: ['picsum.photos', 'plus.unsplash.com'],
+      unoptimized: process.env.NODE_ENV === 'development',
     },
     experimental: {
       appDir: true,
     },
     async headers() {
-      return [
+      const headers = [
         {
           source: '/(.*)',
           headers: securityHeaders,
         },
       ]
+
+      // Desabilitar cache de imagens em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+        headers.push({
+          source: '/static/images/:path*',
+          headers: [
+            {
+              key: 'Cache-Control',
+              value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            },
+          ],
+        })
+      }
+
+      return headers
     },
     webpack: (config, options) => {
       config.module.rules.push({
