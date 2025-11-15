@@ -1,0 +1,259 @@
+---
+title: 'Arquitetura com Nest: Aplicando DDD tático, hexagonal e CQRS'
+date: '2025-11-15'
+lastmod: '2025-11-15'
+draft: false
+tags: ['arquitetura', 'ddd', 'boas-práticas']
+summary: 'Como Domain-Driven Design e Arquitetura Hexagonal trabalham juntos para isolar lógica de negócio de frameworks, bancos de dados e outras dependências técnicas.'
+images: ['/static/images/complexity.png']
+---
+
+Existe uma percepção comum de que o NestJS é extremamente opinativo e te força a seguir um único caminho arquitetural. A realidade é bem diferente.
+
+O framework oferece uma estrutura base sólida, fundamentada em arquitetura em camadas, que funciona muito bem para a maioria dos casos. Mas essa não é a única opção disponível.
+
+Quando você precisa de algo diferente, o NestJS não te prende. Os módulos podem servir como bounded contexts para aplicar DDD tático. Você pode implementar uma Arquitetura Hexagonal completa criando ports e adapters com TypeScript. E se precisar de CQRS ou uma abordagem orientada a eventos, existem pacotes oficiais que integram perfeitamente.
+
+Este artigo explora como combinar DDD tático, Arquitetura Hexagonal e CQRS usando o NestJS, mostrando que é possível manter a flexibilidade arquitetural sem abrir mão da produtividade que o framework oferece.
+
+## Disclaimer
+
+É importante deixar claro que DDD deve ser usado onde faz sentido, ou seja, em domínios complexos com regras de negócio que justifiquem essa abordagem. Para aplicações CRUD simples ou sistemas com lógica de negócio trivial, DDD pode adicionar complexidade desnecessária.
+
+Os exemplos apresentados neste artigo utilizam DDD tático como forma de demonstrar a aplicação prática dos conceitos de DDD combinados com Arquitetura Hexagonal usando o framework NestJS. O objetivo é ilustrar como esses padrões podem ser aplicados, não sugerir que devem ser usados em todos os projetos.
+
+## Quando usar?
+
+DDD e Arquitetura Hexagonal fazem sentido quando:
+
+- Você tem regras de negócio complexas que precisam ser protegidas
+- Precisa trocar tecnologias sem reescrever lógica de negócio
+- Quer testar lógica de negócio sem dependências externas
+- Está construindo sistemas que precisam evoluir ao longo do tempo
+
+Não faz sentido para:
+
+- Aplicações CRUD simples
+- Sistemas com baixo volume de operações
+- Equipes pequenas com experiência limitada em DDD
+- Projetos com prazos muito apertados
+
+## Domain-Driven Design (DDD)
+
+DDD é uma abordagem de desenvolvimento que foca em modelar o domínio de negócio, colocando a lógica de negócio no centro da aplicação.
+
+### Agregados
+
+Um agregado é um cluster de objetos de domínio tratados como uma unidade. O agregado tem uma raiz (Aggregate Root) que é o único ponto de entrada para acessar objetos internos.
+
+No exemplo de uma conta bancária, `BankAccount` é a raiz do agregado que encapsula:
+
+- **Identidade**: Representada por `AccountId`
+- **Número da Conta**: Representada por `AccountNumber`
+- **Proprietário**: Representada por `Owner`
+- **Saldo**: Representada por `Balance`
+
+O `BankAccount` garante a consistência das regras de negócio:
+
+```typescript
+deposit(money: Money): void {
+  this.validateAmount(money.amount);
+  this.balance = this.balance.add(money);
+}
+
+withdraw(money: Money): void {
+  this.validateAmount(money.amount);
+  if (this.balance.money.amount < money.amount) {
+    throw new Error('Insufficient balance');
+  }
+  this.balance = this.balance.subtract(money);
+}
+```
+
+### Objetos de Valor
+
+Objetos de valor são objetos imutáveis que representam conceitos do domínio. Eles são identificados pelo seu valor, não por uma identidade única.
+
+#### Características dos Objetos de Valor:
+
+1. **Imutabilidade**: Uma vez criados, não podem ser alterados
+2. **Igualdade por Valor**: Dois objetos são iguais se seus valores forem iguais
+3. **Auto-validação**: Validam seus próprios dados na criação
+
+#### Objetos de Valor no Projeto:
+
+- **AccountId**: Identificador único da conta
+- **AccountNumber**: Número da conta bancária
+- **Money**: Representa dinheiro com valor e moeda
+- **Balance**: Saldo da conta, composto por Money
+- **Owner**: Proprietário da conta com nome e documento
+
+Exemplo de `Money`:
+
+```typescript
+export class Money {
+  constructor(
+    public readonly amount: number,
+    public readonly currency: string = 'BRL'
+  ) {
+    if (amount < 0) {
+      throw new Error('Amount cannot be negative')
+    }
+    if (!currency || currency.trim().length === 0) {
+      throw new Error('Currency cannot be empty')
+    }
+  }
+
+  add(money: Money): Money {
+    if (this.currency !== money.currency) {
+      throw new Error('Cannot add money with different currencies')
+    }
+    return new Money(this.amount + money.amount, this.currency)
+  }
+}
+```
+
+### Factories
+
+Factories são responsáveis por criar objetos de domínio complexos, garantindo que sejam criados em um estado válido e consistente.
+
+A `BankAccountFactory` encapsula a lógica de criação de uma conta bancária:
+
+```typescript
+create(ownerName: string, ownerDocument: string): BankAccount {
+  const owner = new Owner(ownerName, ownerDocument);
+  const bankAccount = new BankAccount();
+  bankAccount.id = new AccountId(randomUUID());
+  bankAccount.number = new AccountNumber(
+    Math.random().toString(36).substring(2, 15),
+  );
+  bankAccount.owner = owner;
+  bankAccount.balance = new Balance(new Money(0, 'BRL'));
+  return bankAccount;
+}
+```
+
+### Bounded Contexts
+
+Um bounded context define os limites onde um modelo de domínio específico se aplica. No projeto, `bank-account` é um bounded context que contém toda a lógica relacionada a contas bancárias.
+
+No NestJS, os módulos podem atuar como bounded contexts, encapsulando toda a lógica de um domínio específico (domain, application, infrastructure e presenters) dentro de um único módulo. Quando cada módulo representa um bounded context, fica explícito quais classes pertencem a qual domínio, reduzindo a chance de acoplamento indevido entre domínios diferentes.
+
+## Arquitetura Hexagonal
+
+Arquitetura Hexagonal (também conhecida como Ports and Adapters) isola a lógica de negócio de preocupações técnicas, permitindo que a aplicação seja independente de frameworks, bancos de dados e interfaces externas.
+
+![Arquitetura Hexagonal](https://miro.medium.com/v2/resize:fit:1358/1*Bpi4Eynu38ayH-8ZE3cSKQ.gif)
+
+### Camadas da Arquitetura
+
+#### 1. Camada de Domínio
+
+A camada de domínio contém lógica de negócio pura, sem dependências externas:
+
+- **Entidades de Domínio**: `BankAccount`
+- **Objetos de Valor**: `AccountId`, `AccountNumber`, `Balance`, `Money`, `Owner`
+- **Factories**: `BankAccountFactory`
+- **Regras de Negócio**: Métodos como `deposit()` e `withdraw()`
+
+Esta camada não sabe nada sobre persistência, HTTP ou qualquer tecnologia específica.
+
+#### 2. Camada de Aplicação
+
+A camada de aplicação orquestra casos de uso e coordena o domínio:
+
+- **Command Handlers**: Processam comandos CQRS (ex: `CreateBankAccountCommandHandler`)
+- **Serviços de Aplicação**: Coordenam operações (ex: `BankAccountService`)
+- **Ports**: Interfaces que definem contratos (ex: `CreateBankAccountRepository`)
+
+Ports definem o que a aplicação precisa, mas não como será implementado:
+
+```typescript
+export abstract class CreateBankAccountRepository {
+  abstract save(bankAccount: BankAccount): Promise<BankAccount>
+}
+```
+
+#### 3. Camada de Infraestrutura
+
+A camada de infraestrutura implementa adapters que conectam a aplicação ao mundo externo:
+
+- **Repositories**: Implementações concretas de ports (ex: `OrmCreateBankAccountRepository`)
+- **Entities**: Modelos de persistência (ex: `BankAccountEntity`)
+- **Mappers**: Convertem entre modelos de domínio e persistência
+
+O adapter implementa o port definido na camada de aplicação:
+
+```typescript
+export class OrmCreateBankAccountRepository implements CreateBankAccountRepositoryPort {
+  async save(bankAccount: BankAccount): Promise<BankAccount> {
+    const persistenceModel = BankAccountMapper.toPersistence(bankAccount)
+    const newEntity = await this.bankAccountRepository.save(persistenceModel)
+    return BankAccountMapper.toDomain(newEntity)
+  }
+}
+```
+
+#### 4. Camada de Apresentação
+
+A camada de apresentação lida com interfaces de usuário:
+
+- **Controllers**: Endpoints HTTP (ex: `BankAccountController`)
+- **DTOs**: Data Transfer Objects (ex: `CreateBankAccountDto`)
+
+### Princípios da Arquitetura Hexagonal
+
+#### Inversão de Dependência
+
+As dependências apontam para dentro, do exterior para o centro:
+
+```
+Infraestrutura → Aplicação → Domínio
+```
+
+A camada de infraestrutura depende de interfaces (ports) definidas na camada de aplicação, não o contrário.
+
+#### Ports e Adapters
+
+- **Ports**: Interfaces que definem contratos (na camada de aplicação)
+- **Adapters**: Implementações concretas (na camada de infraestrutura)
+
+#### Independência Tecnológica
+
+A lógica de negócio não depende de:
+
+- Frameworks (NestJS, TypeORM)
+- Bancos de dados (PostgreSQL)
+- Protocolos de comunicação (HTTP)
+- Bibliotecas externas
+
+### Fluxo de Dados
+
+1. **Input**: Um controller HTTP recebe uma requisição
+2. **DTO**: O controller converte a requisição em um DTO
+3. **Command**: O DTO é convertido em um Command
+4. **Command Handler**: O handler processa o comando usando o domínio
+5. **Repository Port**: O handler usa o port para persistir
+6. **Repository Adapter**: O adapter implementa a persistência
+7. **Mapper**: Converte entre modelo de domínio e entidade
+8. **Output**: Retorna o resultado para o controller
+
+### Benefícios
+
+1. **Testabilidade**: Como a lógica de negócio não depende de frameworks ou bancos de dados, você pode testá-la criando mocks simples das interfaces (ports), sem precisar configurar bancos de dados ou servidores HTTP.
+
+2. **Manutenibilidade**: Quando você precisa trocar de ORM (ex: TypeORM para Prisma) ou adicionar suporte a GraphQL além de REST, apenas a camada de infraestrutura é afetada. O domínio permanece inalterado porque não conhece essas tecnologias.
+
+3. **Flexibilidade**: A troca de implementações é facilitada porque você trabalha com interfaces (ports). Para trocar de TypeORM para Prisma, por exemplo, você cria um novo adapter que implementa o mesmo port, sem modificar o código que usa o port.
+
+4. **Separação de responsabilidades**: Cada camada tem uma responsabilidade bem definida: domínio contém regras de negócio, aplicação orquestra casos de uso, infraestrutura implementa detalhes técnicos. Isso reduz a complexidade cognitiva ao trabalhar com o código.
+
+5. **Extensibilidade**: Adicionar novos adapters (ex: GraphQL além de REST) não requer mudanças no domínio ou na aplicação. Você cria um novo adapter que implementa os ports necessários, mantendo a lógica de negócio intacta.
+
+## CQRS (Command Query Responsibility Segregation)
+
+CQRS separa operações de leitura (queries) de operações de escrita (commands), permitindo otimizações independentes. No contexto deste projeto, utilizamos CQRS para isolar a lógica de domínio da infraestrutura de leitura, mantendo um Modelo de Escrita rico (com Agregados, Entidades e Objetos de Valor) e um Modelo de Leitura simples.
+
+Commands representam intenções de mudar o estado do sistema e são processados por Command Handlers que executam a lógica de negócio usando o domínio. O Command Bus do NestJS CQRS despacha automaticamente commands para seus respectivos handlers.
+
+Se você está se perguntando se faz sentido usar CQRS em um monolito sem banco de dados distribuído, confira o artigo [Entendendo CQRS: Separação de Responsabilidades e Quando Usar](/blog/pt/understanding-cqrs).

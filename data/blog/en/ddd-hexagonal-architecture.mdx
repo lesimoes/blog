@@ -1,0 +1,259 @@
+---
+title: 'Architecture with Nest: Applying Tactical DDD, Hexagonal and CQRS'
+date: '2025-11-15'
+lastmod: '2025-11-15'
+draft: false
+tags: ['architecture', 'ddd', 'best-practices']
+summary: 'How Domain-Driven Design and Hexagonal Architecture work together to isolate business logic from frameworks, databases, and other technical dependencies.'
+images: ['/static/images/complexity.png']
+---
+
+There's a common perception that NestJS is extremely opinionated and forces you to follow a single architectural path. The reality is quite different.
+
+The framework provides a solid base structure, grounded in layered architecture, that works well for most cases. But that's not the only option available.
+
+When you need something different, NestJS doesn't lock you in. Modules can serve as bounded contexts to apply tactical DDD. You can implement a complete Hexagonal Architecture by creating ports and adapters with TypeScript. And if you need CQRS or an event-driven approach, there are official packages that integrate seamlessly.
+
+This article explores how to combine tactical DDD, Hexagonal Architecture, and CQRS using NestJS, showing that it's possible to maintain architectural flexibility without giving up the productivity the framework offers.
+
+## Disclaimer
+
+It's important to clarify that DDD should be used where it makes sense, that is, in complex domains with business rules that justify this approach. For simple CRUD applications or systems with trivial business logic, DDD can add unnecessary complexity.
+
+The examples presented in this article use tactical DDD as a way to demonstrate the practical application of DDD concepts combined with Hexagonal Architecture using the NestJS framework. The goal is to illustrate how these patterns can be applied, not to suggest they should be used in all projects.
+
+## When to use?
+
+DDD and Hexagonal Architecture make sense when:
+
+- You have complex business rules that need to be protected
+- You need to swap technologies without rewriting business logic
+- You want to test business logic without external dependencies
+- You're building systems that need to evolve over time
+
+They don't make sense for:
+
+- Simple CRUD applications
+- Systems with low operation volume
+- Small teams with limited DDD experience
+- Projects with very tight deadlines
+
+## Domain-Driven Design (DDD)
+
+DDD is a software development approach that focuses on modeling the business domain, placing business logic at the center of the application.
+
+### Aggregates
+
+An aggregate is a cluster of domain objects that are treated as a single unit. The aggregate has a root (Aggregate Root) that is the only entry point to access internal objects.
+
+In the example of a bank account, `BankAccount` is the aggregate root that encapsulates:
+
+- **Identity**: Represented by `AccountId`
+- **Account Number**: Represented by `AccountNumber`
+- **Owner**: Represented by `Owner`
+- **Balance**: Represented by `Balance`
+
+The `BankAccount` ensures consistency of business rules:
+
+```typescript
+deposit(money: Money): void {
+  this.validateAmount(money.amount);
+  this.balance = this.balance.add(money);
+}
+
+withdraw(money: Money): void {
+  this.validateAmount(money.amount);
+  if (this.balance.money.amount < money.amount) {
+    throw new Error('Insufficient balance');
+  }
+  this.balance = this.balance.subtract(money);
+}
+```
+
+### Value Objects
+
+Value objects are immutable objects that represent domain concepts. They are identified by their value, not by a unique identity.
+
+#### Value Object Characteristics:
+
+1. **Immutability**: Once created, cannot be changed
+2. **Value Equality**: Two objects are equal if their values are equal
+3. **Self-Validation**: Validate their own data upon creation
+
+#### Value Objects in the Project:
+
+- **AccountId**: Unique account identifier
+- **AccountNumber**: Bank account number
+- **Money**: Represents money with value and currency
+- **Balance**: Account balance, composed of Money
+- **Owner**: Account owner with name and document
+
+Example of `Money`:
+
+```typescript
+export class Money {
+  constructor(
+    public readonly amount: number,
+    public readonly currency: string = 'BRL'
+  ) {
+    if (amount < 0) {
+      throw new Error('Amount cannot be negative')
+    }
+    if (!currency || currency.trim().length === 0) {
+      throw new Error('Currency cannot be empty')
+    }
+  }
+
+  add(money: Money): Money {
+    if (this.currency !== money.currency) {
+      throw new Error('Cannot add money with different currencies')
+    }
+    return new Money(this.amount + money.amount, this.currency)
+  }
+}
+```
+
+### Factories
+
+Factories are responsible for creating complex domain objects, ensuring they are created in a valid and consistent state.
+
+The `BankAccountFactory` encapsulates the logic for creating a bank account:
+
+```typescript
+create(ownerName: string, ownerDocument: string): BankAccount {
+  const owner = new Owner(ownerName, ownerDocument);
+  const bankAccount = new BankAccount();
+  bankAccount.id = new AccountId(randomUUID());
+  bankAccount.number = new AccountNumber(
+    Math.random().toString(36).substring(2, 15),
+  );
+  bankAccount.owner = owner;
+  bankAccount.balance = new Balance(new Money(0, 'BRL'));
+  return bankAccount;
+}
+```
+
+### Bounded Contexts
+
+A bounded context defines the boundaries where a specific domain model applies. In the project, `bank-account` is a bounded context that contains all logic related to bank accounts.
+
+In NestJS, modules can act as bounded contexts, encapsulating all logic of a specific domain (domain, application, infrastructure, and presenters) within a single module. When each module represents a bounded context, it becomes explicit which classes belong to which domain, reducing the chance of improper coupling between different domains.
+
+## Hexagonal Architecture
+
+Hexagonal Architecture (also known as Ports and Adapters) isolates business logic from technical concerns, allowing the application to be independent of frameworks, databases, and external interfaces.
+
+![Hexagonal Architecture](https://miro.medium.com/v2/resize:fit:1358/1*Bpi4Eynu38ayH-8ZE3cSKQ.gif)
+
+### Architecture Layers
+
+#### 1. Domain Layer
+
+The domain layer contains pure business logic, without external dependencies:
+
+- **Domain Entities**: `BankAccount`
+- **Value Objects**: `AccountId`, `AccountNumber`, `Balance`, `Money`, `Owner`
+- **Factories**: `BankAccountFactory`
+- **Business Rules**: Methods like `deposit()` and `withdraw()`
+
+This layer knows nothing about persistence, HTTP, or any specific technology.
+
+#### 2. Application Layer
+
+The application layer orchestrates use cases and coordinates the domain:
+
+- **Command Handlers**: Process CQRS commands (e.g., `CreateBankAccountCommandHandler`)
+- **Application Services**: Coordinate operations (e.g., `BankAccountService`)
+- **Ports**: Interfaces that define contracts (e.g., `CreateBankAccountRepository`)
+
+Ports define what the application needs, but not how it will be implemented:
+
+```typescript
+export abstract class CreateBankAccountRepository {
+  abstract save(bankAccount: BankAccount): Promise<BankAccount>
+}
+```
+
+#### 3. Infrastructure Layer
+
+The infrastructure layer implements adapters that connect the application to the external world:
+
+- **Repositories**: Concrete implementations of ports (e.g., `OrmCreateBankAccountRepository`)
+- **Entities**: Persistence models (e.g., `BankAccountEntity`)
+- **Mappers**: Convert between domain and persistence models
+
+The adapter implements the port defined in the application layer:
+
+```typescript
+export class OrmCreateBankAccountRepository implements CreateBankAccountRepositoryPort {
+  async save(bankAccount: BankAccount): Promise<BankAccount> {
+    const persistenceModel = BankAccountMapper.toPersistence(bankAccount)
+    const newEntity = await this.bankAccountRepository.save(persistenceModel)
+    return BankAccountMapper.toDomain(newEntity)
+  }
+}
+```
+
+#### 4. Presenters Layer
+
+The presenters layer handles user interfaces:
+
+- **Controllers**: HTTP endpoints (e.g., `BankAccountController`)
+- **DTOs**: Data Transfer Objects (e.g., `CreateBankAccountDto`)
+
+### Hexagonal Architecture Principles
+
+#### Dependency Inversion
+
+Dependencies point inward, from the outside to the center:
+
+```
+Infrastructure → Application → Domain
+```
+
+The infrastructure layer depends on interfaces (ports) defined in the application layer, not the other way around.
+
+#### Ports and Adapters
+
+- **Ports**: Interfaces that define contracts (in the application layer)
+- **Adapters**: Concrete implementations (in the infrastructure layer)
+
+#### Technology Independence
+
+Business logic does not depend on:
+
+- Frameworks (NestJS, TypeORM)
+- Databases (PostgreSQL)
+- Communication protocols (HTTP)
+- External libraries
+
+### Data Flow
+
+1. **Input**: An HTTP controller receives a request
+2. **DTO**: The controller converts the request to a DTO
+3. **Command**: The DTO is converted to a Command
+4. **Command Handler**: The handler processes the command using the domain
+5. **Repository Port**: The handler uses the port to persist
+6. **Repository Adapter**: The adapter implements persistence
+7. **Mapper**: Converts between domain model and entity
+8. **Output**: Returns the result to the controller
+
+### Benefits
+
+1. **Testability**: Since business logic doesn't depend on frameworks or databases, you can test it by creating simple mocks of the interfaces (ports), without needing to configure databases or HTTP servers.
+
+2. **Maintainability**: When you need to switch ORMs (e.g., TypeORM to Prisma) or add GraphQL support alongside REST, only the infrastructure layer is affected. The domain remains unchanged because it doesn't know about these technologies.
+
+3. **Flexibility**: Swapping implementations is easier because you work with interfaces (ports). To switch from TypeORM to Prisma, for example, you create a new adapter that implements the same port, without modifying the code that uses the port.
+
+4. **Separation of responsibilities**: Each layer has a well-defined responsibility: domain contains business rules, application orchestrates use cases, infrastructure implements technical details. This reduces cognitive complexity when working with the code.
+
+5. **Extensibility**: Adding new adapters (e.g., GraphQL alongside REST) doesn't require changes to the domain or application. You create a new adapter that implements the necessary ports, keeping business logic intact.
+
+## CQRS (Command Query Responsibility Segregation)
+
+CQRS separates read operations (queries) from write operations (commands), allowing independent optimizations. In the context of this project, we use CQRS to isolate domain logic from read infrastructure, maintaining a rich Write Model (with Aggregates, Entities, and Value Objects) and a simple Read Model.
+
+Commands represent intentions to change system state and are processed by Command Handlers that execute business logic using the domain. The NestJS CQRS Command Bus automatically dispatches commands to their respective handlers.
+
+If you're wondering whether it makes sense to use CQRS in a monolith without a distributed database, check out the article [Understanding CQRS: Separation of Responsibilities and When to Use It](/blog/en/understanding-cqrs).
