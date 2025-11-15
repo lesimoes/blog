@@ -1,5 +1,5 @@
 ---
-title: 'Arquitetura com Nest: Aplicando DDD tático, hexagonal e CQRS'
+title: 'Arquitetura com Nest: Aplicando DDD tático, hexagonal e CQRS - Parte 1'
 date: '2025-11-15'
 lastmod: '2025-11-15'
 draft: false
@@ -257,3 +257,5 @@ CQRS separa operações de leitura (queries) de operações de escrita (commands
 Commands representam intenções de mudar o estado do sistema e são processados por Command Handlers que executam a lógica de negócio usando o domínio. O Command Bus do NestJS CQRS despacha automaticamente commands para seus respectivos handlers.
 
 Se você está se perguntando se faz sentido usar CQRS em um monolito sem banco de dados distribuído, confira o artigo [Entendendo CQRS: Separação de Responsabilidades e Quando Usar](/blog/pt/understanding-cqrs).
+
+A implementação completa pode ser acessada em: [https://github.com/lesimoes/architecture-with-nest/tree/part1](https://github.com/lesimoes/architecture-with-nest/tree/part1)
