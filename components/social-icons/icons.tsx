@@ -59,3 +59,11 @@ export function Mastodon(svgProps: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export function Pixelfed(svgProps: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...svgProps}>
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6S17.302 21.6 12 21.6 2.4 17.302 2.4 12 6.698 2.4 12 2.4zm-2.4 4.8v9.6h1.2V7.2H9.6zm2.4 0v9.6h1.2V7.2H12zm2.4 0v9.6h1.2V7.2h-1.2z" />
+    </svg>
+  )
+}

@@ -10,6 +10,37 @@ images: ['/static/images/complexity.png']
 
 Event Sourcing é um padrão arquitetural onde o estado da aplicação é determinado pela sequência de eventos que ocorreram, em vez de armazenar apenas o estado atual. Cada mudança de estado é registrada como um evento imutável no Event Store.
 
+Este artigo faz parte da Parte II de uma série onde estou implementando conceitos de arquitetura e padrões arquiteturais usando Nest. A implementação completa pode ser acessada em: [https://github.com/lesimoes/architecture-with-nest/tree/part2](https://github.com/lesimoes/architecture-with-nest/tree/part2)
+
+## Benefícios
+
+Como destacado por Greg Young em seu trabalho sobre CQRS e Event Sourcing, os principais benefícios incluem:
+
+1. **Rastreamento Completo**: Histórico completo de todas as mudanças de estado — o fluxo de eventos pode ser reexecutado para reconstruir estado ou para auditoria
+2. **Replay de Eventos**: Capacidade de reconstruir o estado em qualquer ponto no tempo
+3. **Desacoplamento**: Eventos podem ser consumidos por múltiplos handlers sem acoplamento
+4. **Time Travel**: Capacidade de visualizar o estado do sistema em qualquer momento histórico
+5. **Consistência Otimista**: Controle de versão previne conflitos de concorrência
+6. **Versionamento de Modelo**: Pode ajudar no versionamento e alterações de modelo, já que o estado atual não está "preso" a um esquema rígido
+7. **Performance e Escalabilidade**: Permite tratar o armazenamento como "append-only" (somente acréscimo), o que pode melhorar desempenho e escalabilidade em certos casos
+8. **Particionamento**: A abordagem de eventos facilita sharding e particionamento horizontal, pois o modelo de leitura pode ser distribuído e replicado
+
+## Trade-offs e Considerações
+
+É importante considerar que Event Sourcing não é adequado para todos os domínios. Como discutido por Greg Young, existem alguns trade-offs:
+
+### Desafios
+
+1. **Reconstrução de Estado**: A reconstrução de estado pode implicar em "snapshots" para performance — gravar periodicamente o estado atual para não ter que aplicar todos os eventos desde o início. Neste projeto, contornamos esse problema fazendo um update com o saldo atual da conta sempre que um evento é persistido. No próximo artigo, mostraremos como implementar snapshots de forma mais eficiente.
+2. **Complexidade**: Lidar com consistência, versões de eventos, evolução de esquema de evento etc, exige disciplina e conhecimento especializado
+3. **ROI**: Nem todo domínio precisa de Event Sourcing — o retorno sobre investimento pode não valer o custo em domínios simples
+
+### Outras Considerações
+
+- **Migração Incremental**: Não é necessário adotar CQRS + Event Sourcing de uma só vez em todo o sistema. Pode-se começar a partir de pontos onde há necessidade clara (alto volume de leitura ou escrita, domínio crítico) e evoluir gradualmente
+- **Custo vs Benefício**: A adoção desses padrões implica mais complexidade — mais modelos, mais infraestrutura, mais especialização — então é importante avaliar se o ganho (em modelagem, desempenho, escalabilidade, manutenção) compensa o custo
+- **Consistência Eventual**: Em muitos casos, separar leitura e escrita e/ou usar replicação/eventos implica que a consistência **imediata** entre os modelos (comando vs consulta) pode não existir — ou seja, pode haver uma "consistência eventual"
+
 ## Conceitos Fundamentais
 
 ### Event Store
@@ -213,33 +244,8 @@ async findByNumber(accountNumber: AccountNumber): Promise<BankAccount | null> {
 7. **Mongo Event Store** persiste os eventos em uma transação
 8. **Repository** atualiza o estado atual do agregado no banco de dados
 
-## Benefícios
+## Conclusão
 
-Como destacado por Greg Young em seu trabalho sobre CQRS e Event Sourcing, os principais benefícios incluem:
+Ainda vamos evoluir esse projeto com conceitos como snapshot, saga pattern e implementar bancos diferentes de leitura e escrita, o que irá nos obrigar a considerar a consistência eventual.
 
-1. **Rastreamento Completo**: Histórico completo de todas as mudanças de estado — o fluxo de eventos pode ser reexecutado para reconstruir estado ou para auditoria
-2. **Replay de Eventos**: Capacidade de reconstruir o estado em qualquer ponto no tempo
-3. **Desacoplamento**: Eventos podem ser consumidos por múltiplos handlers sem acoplamento
-4. **Time Travel**: Capacidade de visualizar o estado do sistema em qualquer momento histórico
-5. **Consistência Otimista**: Controle de versão previne conflitos de concorrência
-6. **Versionamento de Modelo**: Pode ajudar no versionamento e alterações de modelo, já que o estado atual não está "preso" a um esquema rígido
-7. **Performance e Escalabilidade**: Permite tratar o armazenamento como "append-only" (somente acréscimo), o que pode melhorar desempenho e escalabilidade em certos casos
-8. **Particionamento**: A abordagem de eventos facilita sharding e particionamento horizontal, pois o modelo de leitura pode ser distribuído e replicado
-
-## Trade-offs e Considerações
-
-É importante considerar que Event Sourcing não é adequado para todos os domínios. Como discutido por Greg Young, existem alguns trade-offs:
-
-### Desafios
-
-1. **Reconstrução de Estado**: A reconstrução de estado pode implicar em "snapshots" para performance — gravar periodicamente o estado atual para não ter que aplicar todos os eventos desde o início. Neste projeto, contornamos esse problema fazendo um update com o saldo atual da conta sempre que um evento é persistido. No próximo artigo, mostraremos como implementar snapshots de forma mais eficiente.
-2. **Complexidade**: Lidar com consistência, versões de eventos, evolução de esquema de evento etc, exige disciplina e conhecimento especializado
-3. **ROI**: Nem todo domínio precisa de Event Sourcing — o retorno sobre investimento pode não valer o custo em domínios simples
-
-### Outras Considerações
-
-- **Migração Incremental**: Não é necessário adotar CQRS + Event Sourcing de uma só vez em todo o sistema. Pode-se começar a partir de pontos onde há necessidade clara (alto volume de leitura ou escrita, domínio crítico) e evoluir gradualmente
-- **Custo vs Benefício**: A adoção desses padrões implica mais complexidade — mais modelos, mais infraestrutura, mais especialização — então é importante avaliar se o ganho (em modelagem, desempenho, escalabilidade, manutenção) compensa o custo
-- **Consistência Eventual**: Em muitos casos, separar leitura e escrita e/ou usar replicação/eventos implica que a consistência **imediata** entre os modelos (comando vs consulta) pode não existir — ou seja, pode haver uma "consistência eventual"
-
-A implementação completa pode ser acessada em: [https://github.com/lesimoes/architecture-with-nest/tree/part2](https://github.com/lesimoes/architecture-with-nest/tree/part2)
+Artigo do Greg Young: [CQRS Documents](https://cqrs.wordpress.com/wp-content/uploads/2010/11/cqrs_documents.pdf)

@@ -10,6 +10,37 @@ images: ['/static/images/complexity.png']
 
 Event Sourcing is an architectural pattern where the application state is determined by the sequence of events that occurred, rather than storing only the current state. Each state change is recorded as an immutable event in the Event Store.
 
+This article is part of Part II of a series where I'm implementing architecture concepts and architectural patterns using Nest. The complete implementation can be accessed at: [https://github.com/lesimoes/architecture-with-nest/tree/part2](https://github.com/lesimoes/architecture-with-nest/tree/part2)
+
+## Benefits
+
+As highlighted by Greg Young in his work on CQRS and Event Sourcing, the main benefits include:
+
+1. **Complete Audit Trail**: Complete history of all state changes — the event stream can be replayed to reconstruct state or for auditing purposes
+2. **Event Replay**: Ability to reconstruct state at any point in time
+3. **Decoupling**: Events can be consumed by multiple handlers without coupling
+4. **Time Travel**: Ability to view system state at any historical moment
+5. **Optimistic Consistency**: Version control prevents concurrency conflicts
+6. **Model Versioning**: Can help with versioning and model changes, since the current state is not "locked" to a rigid schema
+7. **Performance and Scalability**: Allows treating storage as "append-only", which can improve performance and scalability in certain cases
+8. **Partitioning**: The event-based approach facilitates sharding and horizontal partitioning, as the read model can be distributed and replicated
+
+## Trade-offs and Considerations
+
+It's important to consider that Event Sourcing is not suitable for all domains. As discussed by Greg Young, there are some trade-offs:
+
+### Challenges
+
+1. **State Reconstruction**: State reconstruction may require "snapshots" for performance — periodically saving the current state to avoid applying all events from the beginning. In this project, we work around this issue by updating the current account balance whenever an event is persisted. In the next article, we'll show how to implement snapshots more efficiently.
+2. **Complexity**: Dealing with consistency, event versions, event schema evolution, etc., requires discipline and specialized knowledge
+3. **ROI**: Not every domain needs Event Sourcing — the return on investment may not be worth the cost in simple domains
+
+### Other Considerations
+
+- **Incremental Migration**: It's not necessary to adopt CQRS + Event Sourcing all at once across the entire system. You can start from points where there's a clear need (high read or write volume, critical domain) and evolve gradually
+- **Cost vs Benefit**: Adopting these patterns implies more complexity — more models, more infrastructure, more specialization — so it's important to evaluate whether the gain (in modeling, performance, scalability, maintenance) compensates for the cost
+- **Eventual Consistency**: In many cases, separating reads and writes and/or using replication/events implies that **immediate** consistency between models (command vs query) may not exist — that is, there may be "eventual consistency"
+
 ## Fundamental Concepts
 
 ### Event Store
@@ -213,33 +244,8 @@ async findByNumber(accountNumber: AccountNumber): Promise<BankAccount | null> {
 7. **Mongo Event Store** persists events in a transaction
 8. **Repository** updates the current state of the aggregate in the database
 
-## Benefits
+## Conclusion
 
-As highlighted by Greg Young in his work on CQRS and Event Sourcing, the main benefits include:
+We will continue to evolve this project with concepts such as snapshots, saga pattern, and implementing separate read and write databases, which will require us to consider eventual consistency.
 
-1. **Complete Audit Trail**: Complete history of all state changes — the event stream can be replayed to reconstruct state or for auditing purposes
-2. **Event Replay**: Ability to reconstruct state at any point in time
-3. **Decoupling**: Events can be consumed by multiple handlers without coupling
-4. **Time Travel**: Ability to view system state at any historical moment
-5. **Optimistic Consistency**: Version control prevents concurrency conflicts
-6. **Model Versioning**: Can help with versioning and model changes, since the current state is not "locked" to a rigid schema
-7. **Performance and Scalability**: Allows treating storage as "append-only", which can improve performance and scalability in certain cases
-8. **Partitioning**: The event-based approach facilitates sharding and horizontal partitioning, as the read model can be distributed and replicated
-
-## Trade-offs and Considerations
-
-It's important to consider that Event Sourcing is not suitable for all domains. As discussed by Greg Young, there are some trade-offs:
-
-### Challenges
-
-1. **State Reconstruction**: State reconstruction may require "snapshots" for performance — periodically saving the current state to avoid applying all events from the beginning. In this project, we work around this issue by updating the current account balance whenever an event is persisted. In the next article, we'll show how to implement snapshots more efficiently.
-2. **Complexity**: Dealing with consistency, event versions, event schema evolution, etc., requires discipline and specialized knowledge
-3. **ROI**: Not every domain needs Event Sourcing — the return on investment may not be worth the cost in simple domains
-
-### Other Considerations
-
-- **Incremental Migration**: It's not necessary to adopt CQRS + Event Sourcing all at once across the entire system. You can start from points where there's a clear need (high read or write volume, critical domain) and evolve gradually
-- **Cost vs Benefit**: Adopting these patterns implies more complexity — more models, more infrastructure, more specialization — so it's important to evaluate whether the gain (in modeling, performance, scalability, maintenance) compensates for the cost
-- **Eventual Consistency**: In many cases, separating reads and writes and/or using replication/events implies that **immediate** consistency between models (command vs query) may not exist — that is, there may be "eventual consistency"
-
-The complete implementation can be accessed at: [https://github.com/lesimoes/architecture-with-nest/tree/part2](https://github.com/lesimoes/architecture-with-nest/tree/part2)
+Greg Young's article: [CQRS Documents](https://cqrs.wordpress.com/wp-content/uploads/2010/11/cqrs_documents.pdf)

@@ -12,6 +12,7 @@ const siteMetadata = {
   github: 'https://github.com/lesimoes',
   youtube: 'https://www.youtube.com/channel/UCvdzKt-BgAePAxGQTLz_xjQ',
   linkedin: 'https://www.linkedin.com/in/lesimoess/',
+  pixelfed: 'https://pixelfed.social/lesimoes',
   locale: 'en-US',
   analytics: {
     // If you want to use an analytics provider you have to add it to the
