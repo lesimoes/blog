@@ -1,0 +1,44 @@
+---
+title: 'Economizando Tokens no Cursor'
+date: '2026-03-16'
+lastmod: '2026-03-16'
+draft: false
+tags: ['LLM', 'Cursor']
+summary: 'Notas sobre como o Curosr consome tokens e dicas práticas de como reduzir esse consumo.'
+---
+
+## Prefácio
+
+Isso é uma página de anotações e não um artigo, ou seja, esse texto poderá passar por alterações ao longo do tempo, ele não é algo estático, e sim algo "vivo".
+
+Tenha em mente que eu posso estar errado, sim, eu sei que é péssimo começar um texto assim. Porém como não temos acesso a todas as informações do Cursor alguns itens podem não corresponder 100% com a verdade. Essas anotações são fruto da minha pesquisa em diversas fontes com uma pitada de achismo.
+
+Sendo bem transparente e respeitando o seu tempo, usei LLM para revisar a gramática e algumas informações após a pesquisa. Sempre que uma informação for originada de uma LLM ela virá marcada com (1).
+
+## Tokens e Consumo
+
+A escala de medidas das LLMs são os tokens, você pode considerar que cada token é uma "parte do texto", assim como palavras são partes de um texto, a mesma ideia se aplica para tokens.
+
+LLMs processam muitos tokens. O padrão de medição, pelo menos o que usaremos aqui, é um milhão de tokens (1M). Para deixar um pouco mais concreto 1M tokens correspondem a (1):
+
+1. mais ou menos 750 mil palavras em português.
+2. Quase toda a série de livros do Harry Potter.
+3. 30 - 50 mil linhas de código.
+
+Cada LLM tem o seu valor de cobrança por token, o que eu acho interessante trazer aqui é outro tipo de custo (1)(2):
+
+- **Energia:** Uma consulta média consome entre **0,3 Wh e 1 Wh** (10x mais que o Google). Por **1 milhão de tokens (1M MTok)**, o gasto chega a **40 kWh**.
+- **Água:** Consumo de **0,26 ml por consulta**(resfriamento). Por **1M MTok**, o gasto é de aproximadamente **0,84 litros**.
+
+## Como economizar
+
+1. **Inline edit** são mais baratas que o modo **Chat**. No modo Chat o Cursor tende a ser mais verboso (output), explica mais o resultado, dá contexto, além disso o Cursor pode enviar todo o código (input) para o modelo.
+2. Em pleno 2026 todos sabemos que é melhor quebrar tarefas no modo Plan, usar o **Instant Apply** (código sugerido) deste modo também custa menos tokens que uma edição no modo Chat. Quando você usa o **Instant Apply** o Cursor usa um modelo especializado em _diffs_, mudando apenas as linhas que são necessárias (output).
+3. **Melhore seu contexto**, mesmo usando o modo Chat podemos economizar especificando os arquivos onde o Cursor deve considerar usando o key @. Quando você não especifica o contexto o Cursor poderá enviar muitos arquivos indexados (input) para o modelo, aumentando o custo.
+4. **Limpe o contexto**, acompanhe no círculo ao lado do ícone de imagem, ele indicará o percentual de memória (contexto) usado, quando estiver muito alto considere criar um resumo do que foi feito até o momento e usar como input em outro chat. A razão disso é que o Cursor pode enviar toda a conversa a cada nova iteração.
+5. Use o **.cursorignore**, esse arquivo serve para listar quais diretórios o Cursor não deve indexar. Parte da indexação também consome tokens de input e pode consumir sempre que você fizer uma pergunta sem especificar o contexto (item 3).
+
+Até agora essas são as formas que eu encontrei de como economizar, algumas regras não são claras na documentação do Cursor, por isso experimente essas e outras regras e meça o resultado.
+
+1: Usei o Gemini para fazer essas medições.
+2: Considerado um prompt entre 500 a 1000 tokens com um "prompt mediano" nesse artigo https://cloud.google.com/blog/products/infrastructure/measuring-the-environmental-impact-of-ai-inference/.
