@@ -34,10 +34,9 @@ Cada LLM tem o seu valor de cobrança por token, o que eu acho interessante traz
 ## Como economizar
 
 1. **Inline edit** são mais baratas que o modo **Chat**. No modo Chat o Cursor tende a ser mais verboso (output), explica mais o resultado, dá contexto, além disso o Cursor pode enviar todo o código (input) para o modelo.
-2. Em pleno 2026 todos sabemos que é melhor quebrar tarefas no modo Plan, usar o **Instant Apply** (código sugerido) deste modo também custa menos tokens que uma edição no modo Chat. Quando você usa o **Instant Apply** o Cursor usa um modelo especializado em _diffs_, mudando apenas as linhas que são necessárias (output).
-3. **Melhore seu contexto**, mesmo usando o modo Chat podemos economizar especificando os arquivos onde o Cursor deve considerar usando o key @. Quando você não especifica o contexto o Cursor poderá enviar muitos arquivos indexados (input) para o modelo, aumentando o custo.
-4. **Limpe o contexto**, acompanhe no círculo ao lado do ícone de imagem, ele indicará o percentual de memória (contexto) usado, quando estiver muito alto considere criar um resumo do que foi feito até o momento e usar como input em outro chat. A razão disso é que o Cursor pode enviar toda a conversa a cada nova iteração.
-5. Use o **.cursorignore**, esse arquivo serve para listar quais diretórios o Cursor não deve indexar. Parte da indexação também consome tokens de input e pode consumir sempre que você fizer uma pergunta sem especificar o contexto (item 3).
+2. **Melhore seu contexto**, mesmo usando o modo Chat podemos economizar especificando os arquivos onde o Cursor deve considerar usando o key @. Quando você não especifica o contexto o Cursor poderá enviar muitos arquivos indexados (input) para o modelo, aumentando o custo.
+3. **Limpe o contexto**, acompanhe no círculo ao lado do ícone de imagem, ele indicará o percentual de memória (contexto) usado, quando estiver muito alto considere criar um resumo do que foi feito até o momento e usar como input em outro chat. A razão disso é que o Cursor pode enviar toda a conversa a cada nova iteração.
+4. Use o **.cursorignore**, esse arquivo serve para listar quais diretórios o Cursor não deve indexar. Parte da indexação também consome tokens de input e pode consumir sempre que você fizer uma pergunta sem especificar o contexto (item 3).
 
 Até agora essas são as formas que eu encontrei de como economizar, algumas regras não são claras na documentação do Cursor, por isso experimente essas e outras regras e meça o resultado.
 

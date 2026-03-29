@@ -34,10 +34,9 @@ Each LLM has its own pricing per token, but what I find interesting to highlight
 ## How to Save Tokens
 
 1. **Inline edits** are cheaper than **Chat** mode. In Chat mode, Cursor tends to be more verbose (output), it explains results, adds context, and may also send your entire codebase (input) to the model.
-2. In 2026 we all know it's better to break tasks down using Plan mode. The **Instant Apply** feature (suggested code) from that mode also costs fewer tokens than a Chat edit. When you use **Instant Apply**, Cursor uses a model specialized in _diffs_, changing only the lines that need to change (output).
-3. **Improve your context**: even in Chat mode, you can save tokens by specifying the files Cursor should consider using the @ key. When you don't specify context, Cursor may send many indexed files (input) to the model, increasing cost.
-4. **Clear your context**: keep an eye on the circle next to the image icon, it shows the percentage of memory (context) used. When it's too high, consider summarizing what has been done so far and using that as input in a new chat. The reason is that Cursor may send the entire conversation on every new iteration.
-5. Use **.cursorignore**: this file lets you list directories that Cursor should not index. Part of the indexing also consumes input tokens and may be triggered every time you ask a question without specifying context (see item 3).
+2. **Improve your context**: even in Chat mode, you can save tokens by specifying the files Cursor should consider using the @ key. When you don't specify context, Cursor may send many indexed files (input) to the model, increasing cost.
+3. **Clear your context**: keep an eye on the circle next to the image icon, it shows the percentage of memory (context) used. When it's too high, consider summarizing what has been done so far and using that as input in a new chat. The reason is that Cursor may send the entire conversation on every new iteration.
+4. Use **.cursorignore**: this file lets you list directories that Cursor should not index. Part of the indexing also consumes input tokens and may be triggered every time you ask a question without specifying context (see item 3).
 
 These are the ways I've found to save tokens so far. Some rules aren't clearly documented by Cursor, so experiment with these and other strategies and measure the results.
 
