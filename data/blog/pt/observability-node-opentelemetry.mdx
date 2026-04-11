@@ -1,0 +1,224 @@
+---
+title: 'Observabilidade em Node: logs, métricas, traces e OpenTelemetry'
+date: '2026-04-11'
+lastmod: '2026-04-11'
+draft: false
+summary: 'Como montar telemetria útil em aplicações Node com OpenTelemetry, Collector, stack LGTM e correlação entre logs e traces no Grafana.'
+images: ['/static/images/observability-node/loki-explore-logs.png']
+tags: ['observabilidade', 'opentelemetry', 'node', 'nestjs', 'grafana']
+authors: ['Leandro Simões']
+---
+
+## Introdução
+
+Observabilidade é a capacidade de entender o que está acontecendo dentro de um sistema através dos sinais que ele emite. Em vez de adivinhar por que uma requisição falhou, você pergunta ao sistema. E ele responde.
+
+O problema é que, por padrão, aplicações Node não emitem quase nada de útil. É como voar sem painel de instrumentos: você sabe que está no ar, mas não sabe para onde vai. O que vou mostrar aqui é como montar esse painel, da definição dos três pilares de telemetria até a instrumentação prática com OpenTelemetry.
+
+<TOCInline toc={props.toc} exclude="Introdução" />
+
+## Por que observabilidade importa
+
+Com múltiplos serviços, filas assíncronas e *workers*, a pergunta "o que está acontecendo?" deixa de ter uma resposta simples. Sem sinais combinados, você vive em modo "apagar incêndio": cada incidente revela o próximo sintoma, nunca a causa raiz.
+
+Com observabilidade, o time visualiza o fluxo completo, do recebimento da requisição até o processamento em fila, e consegue responder não só "o que falhou?" mas "por que falhou?": a conversa passa de reação para investigação.
+
+## Os três pilares: logs, métricas e traces
+
+Toda telemetria parte de três tipos de sinais, cada um cobrindo um ângulo diferente:
+
+***Logs*** são mensagens com *timestamp* emitidas por serviços. Registram eventos pontuais, como a criação de um usuário, uma falha de conexão com o banco ou uma mudança de status. Sozinhos, não rastreiam o fluxo de uma requisição, mas mostram o que aconteceu num momento específico.
+
+**Métricas** são números que evoluem ao longo do tempo: taxa de erro, latência média, uso de CPU, requisições por segundo. Mostram quando algo saiu do padrão, mas não explicam o motivo.
+
+***Traces*** (rastreamento distribuído) mostram o caminho completo de uma requisição por serviços, bancos de dados e filas. Permitem ver onde o tempo foi gasto e o que causou a falha. Sem precisar reproduzir nada localmente.
+
+## Instrumentação prática com OpenTelemetry
+
+OpenTelemetry (OTel) é o padrão aberto para instrumentação de aplicações. Surgiu para evitar *lock-in* com fornecedores. Você instrumenta uma vez e troca o *backend*, de Datadog para Grafana, sem reescrever o código da aplicação.
+
+Existem duas formas de instrumentar:
+
+- ***Zero-code*** (auto-instrumentação): Sem modificar o código da aplicação, o OTel já captura *traces* de *frameworks* populares como Express, HTTP, pg, amqplib e outros. É o ponto de partida para quem está começando.
+- ***Code-based*** (instrumentação manual): Para o que o OTel não captura automaticamente, você cria *spans* manualmente.
+
+Neste artigo vamos usar a abordagem *zero-code*. As duas abordagens podem ser combinadas.
+
+Para ativar a auto-instrumentação, basta importar o pacote `@opentelemetry/auto-instrumentations-node` como primeira linha do *entrypoint* da aplicação:
+
+```typescript
+import '@opentelemetry/auto-instrumentations-node/register';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(process.env.PORT ?? 3001);
+}
+bootstrap();
+```
+
+Com isso, toda requisição HTTP e chamada ao banco geram *spans* automaticamente. O destino dos dados é configurado via variáveis de ambiente, normalmente no `docker-compose.yml`:
+
+```yaml
+environment:
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_SERVICE_NAME: app
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_METRICS_EXPORTER: otlp
+```
+
+## OTel Collector e a stack de observabilidade
+
+A aplicação instrumentada emite sinais, mas quem processa e distribui tudo é a *stack* de observabilidade. O [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) é o *hub* central: recebe os dados em OTLP (OpenTelemetry Protocol) e os distribui para cada *backend*.
+
+Aqui vamos usar a *stack* do Grafana: ela roda localmente e é fácil de reproduzir.
+
+- **Grafana Tempo**, *backend* de *traces*. Armazena *spans* e permite consultas por *trace ID* e TraceQL.
+- **Grafana Loki**, *backend* de *logs*. Indexa por *labels* (não pelo conteúdo), otimizado para busca via LogQL.
+- **Prometheus**, *backend* de métricas. Faz *scrape* do *endpoint* do Collector (porta 8889) e armazena séries temporais para consultas PromQL.
+- **Grafana**, camada de visualização. Conecta-se aos três *backends* como *datasources* para explorar e correlacionar sinais.
+- **Grafana Alloy**, agente de coleta. Descobre *containers* Docker e envia os *logs* de *stdout*/*stderr* diretamente para o Loki, sem alterar o código da aplicação.
+
+O **Collector** é passivo: recebe o que a aplicação envia via *push* OTLP. O **Alloy** é ativo: vai buscar *logs* diretamente nos *containers*. No mesmo projeto, o **Collector** recebe os sinais da aplicação e o **Alloy** captura os *logs* dos *containers*, cobrindo fontes diferentes de sinais.
+
+O resumo do fluxo por tipo de sinal:
+
+| Sinal | Origem | Caminho | Backend |
+| --- | --- | --- | --- |
+| Traces | Auto-instrumentação | App → Collector → Tempo | Tempo |
+| Métricas | Auto-instrumentação | App → Collector → :8889 → Prometheus | Prometheus |
+| Logs (stdout) | Containers | Alloy → Loki | Loki |
+
+Essa separação significa que, quando você quiser trocar o provedor, de Grafana Cloud para Datadog, basta mudar a configuração do Collector. A aplicação não precisa saber para onde os dados vão.
+
+## Mão na massa
+
+Clone o repositório do projeto e inicie os serviços:
+
+```bash
+docker compose up -d
+```
+
+Em seguida, crie um usuário para gerar sinais na aplicação:
+
+```bash
+curl --request POST \
+  --url http://localhost:3001/users \
+  --header 'content-type: application/json' \
+  --data '{ "email": "fulano@eximia.co" }'
+```
+
+Acesse http://localhost:3000 para abrir o Grafana. Em *Explore*, selecione Loki. Em *Label filters*, selecione `service_name = otel-app1`.
+
+![Grafana Explore com Loki e filtro service_name](/static/images/observability-node/loki-explore-logs.png)
+
+O *log* **Usuário criado com sucesso** aparece após a requisição de criação. Entre os campos, o mais importante é o `trace_id`: com ele é possível correlacionar o *log* com o *trace*.
+
+Com *logs* no Loki e *traces* no Tempo, você tem dois *backends* separados. O que conecta os dois é o ***correlation ID***: um identificador presente nos *logs* e nos *spans*, que permite ir do *log* direto para o *trace* no Grafana.
+
+No OTel, esse identificador já existe: é o `traceId`, gerado e propagado automaticamente. O passo seguinte é garantir que ele apareça também nos *logs*.
+
+Para isso, criamos um *logger* customizado que captura o *span* ativo e injeta o `traceId` em cada linha, estendendo o `ConsoleLogger` do NestJS:
+
+```typescript
+import { trace } from '@opentelemetry/api';
+import { ConsoleLogger } from '@nestjs/common';
+
+function getTraceId(): string {
+  const span = trace.getActiveSpan();
+  return span?.spanContext().traceId ?? '';
+}
+
+export class TraceLogger extends ConsoleLogger {
+  formatLine(level: string, message: string, context?: string): string {
+    const traceId = getTraceId();
+    const ctx = context ?? this.context ?? '';
+    const tracePart = traceId ? ` [trace_id=${traceId}]` : '';
+    return `${level.toUpperCase()}${tracePart} ${ctx} - ${message}`;
+  }
+
+  log(message: string, context?: string): void {
+    process.stdout.write(this.formatLine('info', message, context) + '\n');
+  }
+
+  error(message: string, stack?: string, context?: string): void {
+    process.stdout.write(this.formatLine('error', message, context) + '\n');
+    if (stack) process.stdout.write(stack + '\n');
+  }
+
+  warn(message: string, context?: string): void {
+    process.stdout.write(this.formatLine('warn', message, context) + '\n');
+  }
+}
+```
+
+Cada linha de *log* fica no formato `INFO [trace_id=abc123...] Context - mensagem`. O Alloy extrai o `trace_id` via *regex* e o promove a *label* do Loki:
+
+```text
+stage.regex {
+  expression = "trace_id=(?P<trace_id>[a-f0-9]{32})"
+}
+
+stage.labels {
+  values = { trace_id = "" }
+}
+```
+
+Com o `trace_id` como *label*, o Grafana cria um link automático entre o Loki e o Tempo. Para isso, basta configurar um *derived field* no *datasource* do Loki:
+
+```yaml
+jsonData:
+  derivedFields:
+    - datasourceUid: tempo
+      matcherRegex: 'trace_id=([a-f0-9]{32})'
+      name: traceID
+      url: '${__value.raw}'
+      urlDisplayLabel: View in Tempo
+```
+
+Ao abrir um *log* no Grafana, aparece um link "View in Tempo" que leva direto para o *trace* completo daquela requisição, sem precisar copiar o ID manualmente.
+
+![Trace no Grafana Tempo com spans do Express e do banco](/static/images/observability-node/tempo-trace-waterfall.png)
+
+Note as camadas de *middleware* do Express e como cada consulta ao banco aparece como um *span* separado.
+
+Para explorar as métricas, acesse *Metrics* no Grafana. No *card* *Select metric* aparecem os gráficos gerados automaticamente. Separei algumas métricas úteis para acompanhar o comportamento de APIs e do runtime Node:
+
+**HTTP (APIs)**
+
+| Métrica | Uso |
+| --- | --- |
+| http.server.request.duration | Latência (*histogram*); base para p50, p95, p99 e SLAs (*Service Level Agreements*) |
+| Contagem de *requests* por http.response.status_code | *Throughput* e taxa de erro (4xx, 5xx) |
+| http.server.request.size / http.server.response.size | Tamanho de *request*/*response*; tráfego e *outliers* |
+
+**Runtime Node.js**
+
+| Métrica | Uso |
+| --- | --- |
+| process.runtime.nodejs.event_loop.utilization | Uso da *event loop*; valores altos indicam risco de bloqueio |
+| process.runtime.nodejs.memory.heap.used | *Heap* usado; útil para identificar tendências e vazamentos |
+| process.runtime.nodejs.memory.heap.total | *Heap* total (contexto para heap.used) |
+| process.runtime.nodejs.memory.external | Memória fora do *heap* (*buffers*, C++); picos inesperados podem indicar vazamento de memória nativa |
+| process.cpu.utilization | Uso de CPU do processo |
+
+![Métricas HTTP e do runtime Node no Grafana](/static/images/observability-node/grafana-metrics-node-runtime.png)
+
+## Conclusão
+
+Com o OpenTelemetry e alguns *collectors*, a aplicação passa a emitir *logs*, métricas e *traces* distribuídos sem alterar uma linha do código.
+
+A próxima vez que uma requisição travar, ninguém vai ficar chutando. Você abre sua ferramenta de observabilidade, vai do *log* para o *trace* com um clique e corrige a causa, não o sintoma. Observabilidade não resolve *bugs*, mas elimina o tempo gasto na investigação.
+
+Essa estrutura é a base para alertas proativos, SLOs (*Service Level Objectives*) baseados em dados e *dashboards* que o time de produto também consegue ler. A base já está no lugar: o sistema agora fala. Basta aprender a ouvir.
+
+---
+
+## Referências
+
+- [OpenTelemetry Node.js, Getting Started](https://opentelemetry.io/docs/languages/js/getting-started/nodejs/)
+- [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/)
+- [Grafana LGTM Stack (Loki, Grafana, Tempo, Mimir)](https://grafana.com/oss/)
+- [OTel Semantic Conventions](https://opentelemetry.io/docs/concepts/semantic-conventions/)
