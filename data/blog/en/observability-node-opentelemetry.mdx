@@ -4,7 +4,7 @@ date: '2026-04-11'
 lastmod: '2026-04-11'
 draft: false
 summary: 'How to build useful telemetry for Node apps with OpenTelemetry, the Collector, the LGTM stack, and log-to-trace correlation in Grafana.'
-images: ['/static/images/observability-node/loki-explore-logs.png']
+images: ['/static/images/twitter-card.png']
 tags: ['observability', 'opentelemetry', 'node', 'nestjs', 'grafana']
 authors: ['Leandro Simões']
 ---
@@ -27,11 +27,11 @@ With observability, the team sees the full flow, from request intake to queue pr
 
 All telemetry rests on three signal types, each covering a different angle:
 
-***Logs*** are timestamped messages emitted by services. They record point-in-time events, such as user creation, a database connection failure, or a status change. Alone, they do not trace a request’s path, but they show what happened at a specific moment.
+**_Logs_** are timestamped messages emitted by services. They record point-in-time events, such as user creation, a database connection failure, or a status change. Alone, they do not trace a request’s path, but they show what happened at a specific moment.
 
 **Metrics** are numbers that change over time: error rate, average latency, CPU usage, requests per second. They show when something drifted from normal, but not why.
 
-***Traces*** (distributed tracing) show the full path of a request across services, databases, and queues. You can see where time was spent and what caused the failure, without reproducing anything locally.
+**_Traces_** (distributed tracing) show the full path of a request across services, databases, and queues. You can see where time was spent and what caused the failure, without reproducing anything locally.
 
 ## Practical instrumentation with OpenTelemetry
 
@@ -39,23 +39,23 @@ OpenTelemetry (OTel) is the open standard for application instrumentation. It ex
 
 There are two ways to instrument:
 
-- ***Zero-code*** (auto-instrumentation): Without changing application code, OTel already captures traces from popular frameworks such as Express, HTTP, pg, amqplib, and others. It is the starting point for newcomers.
-- ***Code-based*** (manual instrumentation): For what OTel does not capture automatically, you create spans manually.
+- **_Zero-code_** (auto-instrumentation): Without changing application code, OTel already captures traces from popular frameworks such as Express, HTTP, pg, amqplib, and others. It is the starting point for newcomers.
+- **_Code-based_** (manual instrumentation): For what OTel does not capture automatically, you create spans manually.
 
-This article uses the *zero-code* approach. The two approaches can be combined.
+This article uses the _zero-code_ approach. The two approaches can be combined.
 
 To enable auto-instrumentation, import `@opentelemetry/auto-instrumentations-node` as the first line of the application entrypoint:
 
 ```typescript
-import '@opentelemetry/auto-instrumentations-node/register';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import '@opentelemetry/auto-instrumentations-node/register'
+import { NestFactory } from '@nestjs/core'
+import { AppModule } from './app.module'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3001);
+  const app = await NestFactory.create(AppModule)
+  await app.listen(process.env.PORT ?? 3001)
 }
-bootstrap();
+bootstrap()
 ```
 
 With this, every HTTP request and database call generates spans automatically. The export destination is configured via environment variables, usually in `docker-compose.yml`:
@@ -85,11 +85,11 @@ The **Collector** is passive: it receives what the application pushes over OTLP.
 
 Summary of the flow by signal type:
 
-| Signal | Source | Path | Backend |
-| --- | --- | --- | --- |
-| Traces | Auto-instrumentation | App → Collector → Tempo | Tempo |
-| Metrics | Auto-instrumentation | App → Collector → :8889 → Prometheus | Prometheus |
-| Logs (stdout) | Containers | Alloy → Loki | Loki |
+| Signal        | Source               | Path                                 | Backend    |
+| ------------- | -------------------- | ------------------------------------ | ---------- |
+| Traces        | Auto-instrumentation | App → Collector → Tempo              | Tempo      |
+| Metrics       | Auto-instrumentation | App → Collector → :8889 → Prometheus | Prometheus |
+| Logs (stdout) | Containers           | Alloy → Loki                         | Loki       |
 
 That separation means when you want to switch providers—from Grafana Cloud to Datadog—you only change the Collector configuration. The application does not need to know where data goes.
 
@@ -110,46 +110,46 @@ curl --request POST \
   --data '{ "email": "fulano@eximia.co" }'
 ```
 
-Open http://localhost:3000 to launch Grafana. In *Explore*, select Loki. Under *Label filters*, choose `service_name = otel-app1`.
+Open http://localhost:3000 to launch Grafana. In _Explore_, select Loki. Under _Label filters_, choose `service_name = otel-app1`.
 
 ![Grafana Explore with Loki and service_name filter](/static/images/observability-node/loki-explore-logs.png)
 
 The **User created successfully** log line appears after the creation request. Among the fields, the most important is `trace_id`: it lets you correlate the log with the trace.
 
-With logs in Loki and traces in Tempo, you have two separate backends. What connects them is the ***correlation ID***: an identifier present in both logs and spans that lets you jump from the log to the trace in Grafana.
+With logs in Loki and traces in Tempo, you have two separate backends. What connects them is the **_correlation ID_**: an identifier present in both logs and spans that lets you jump from the log to the trace in Grafana.
 
 In OTel, that identifier already exists: it is the `traceId`, generated and propagated automatically. The next step is to ensure it also appears in logs.
 
 For that, we build a custom logger that reads the active span and injects `traceId` into every line, extending NestJS `ConsoleLogger`:
 
 ```typescript
-import { trace } from '@opentelemetry/api';
-import { ConsoleLogger } from '@nestjs/common';
+import { trace } from '@opentelemetry/api'
+import { ConsoleLogger } from '@nestjs/common'
 
 function getTraceId(): string {
-  const span = trace.getActiveSpan();
-  return span?.spanContext().traceId ?? '';
+  const span = trace.getActiveSpan()
+  return span?.spanContext().traceId ?? ''
 }
 
 export class TraceLogger extends ConsoleLogger {
   formatLine(level: string, message: string, context?: string): string {
-    const traceId = getTraceId();
-    const ctx = context ?? this.context ?? '';
-    const tracePart = traceId ? ` [trace_id=${traceId}]` : '';
-    return `${level.toUpperCase()}${tracePart} ${ctx} - ${message}`;
+    const traceId = getTraceId()
+    const ctx = context ?? this.context ?? ''
+    const tracePart = traceId ? ` [trace_id=${traceId}]` : ''
+    return `${level.toUpperCase()}${tracePart} ${ctx} - ${message}`
   }
 
   log(message: string, context?: string): void {
-    process.stdout.write(this.formatLine('info', message, context) + '\n');
+    process.stdout.write(this.formatLine('info', message, context) + '\n')
   }
 
   error(message: string, stack?: string, context?: string): void {
-    process.stdout.write(this.formatLine('error', message, context) + '\n');
-    if (stack) process.stdout.write(stack + '\n');
+    process.stdout.write(this.formatLine('error', message, context) + '\n')
+    if (stack) process.stdout.write(stack + '\n')
   }
 
   warn(message: string, context?: string): void {
-    process.stdout.write(this.formatLine('warn', message, context) + '\n');
+    process.stdout.write(this.formatLine('warn', message, context) + '\n')
   }
 }
 ```
@@ -184,25 +184,25 @@ When you open a log in Grafana, a “View in Tempo” link takes you straight to
 
 Notice the Express middleware layers and how each database query shows up as its own span.
 
-To explore metrics, open *Metrics* in Grafana. The *Select metric* card shows auto-generated charts. Here are useful metrics for API behavior and the Node runtime:
+To explore metrics, open _Metrics_ in Grafana. The _Select metric_ card shows auto-generated charts. Here are useful metrics for API behavior and the Node runtime:
 
 **HTTP (APIs)**
 
-| Metric | Use |
-| --- | --- |
-| http.server.request.duration | Latency (histogram); basis for p50, p95, p99 and SLAs |
-| Request count by http.response.status_code | Throughput and error rate (4xx, 5xx) |
-| http.server.request.size / http.server.response.size | Request/response size; traffic and outliers |
+| Metric                                               | Use                                                   |
+| ---------------------------------------------------- | ----------------------------------------------------- |
+| http.server.request.duration                         | Latency (histogram); basis for p50, p95, p99 and SLAs |
+| Request count by http.response.status_code           | Throughput and error rate (4xx, 5xx)                  |
+| http.server.request.size / http.server.response.size | Request/response size; traffic and outliers           |
 
 **Node.js runtime**
 
-| Metric | Use |
-| --- | --- |
-| process.runtime.nodejs.event_loop.utilization | Event loop utilization; high values suggest blocking risk |
-| process.runtime.nodejs.memory.heap.used | Heap used; trends and leak detection |
-| process.runtime.nodejs.memory.heap.total | Total heap (context for heap.used) |
-| process.runtime.nodejs.memory.external | Off-heap memory (buffers, native); unexpected spikes may indicate native leaks |
-| process.cpu.utilization | Process CPU usage |
+| Metric                                        | Use                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| process.runtime.nodejs.event_loop.utilization | Event loop utilization; high values suggest blocking risk                      |
+| process.runtime.nodejs.memory.heap.used       | Heap used; trends and leak detection                                           |
+| process.runtime.nodejs.memory.heap.total      | Total heap (context for heap.used)                                             |
+| process.runtime.nodejs.memory.external        | Off-heap memory (buffers, native); unexpected spikes may indicate native leaks |
+| process.cpu.utilization                       | Process CPU usage                                                              |
 
 ![HTTP and Node runtime metrics in Grafana](/static/images/observability-node/grafana-metrics-node-runtime.png)
 
