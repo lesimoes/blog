@@ -86,7 +86,6 @@ I wanted it to be nearly as feature-rich as popular blogging templates like [bea
 - Integration with [pliny](https://github.com/timlrx/pliny) that provides:
   - Multiple analytics options including [Umami](https://umami.is/), [Plausible](https://plausible.io/), [Simple Analytics](https://simpleanalytics.com/), Posthog and Google Analytics
   - Comments via [Giscus](https://github.com/laymonage/giscus), [Utterances](https://github.com/utterance/utterances) or Disqus
-  - Newsletter API and component with support for Mailchimp, Buttondown, Convertkit, Klaviyo, Revue, and Emailoctopus
   - Command palette search with [Kbar](https://github.com/timc1/kbar) or Algolia
 - Server-side syntax highlighting with line numbers and line highlighting via [rehype-prism-plus](https://github.com/timlrx/rehype-prism-plus)
 - Math display supported via [KaTeX](https://katex.org/)
@@ -129,6 +128,8 @@ npx degit 'timlrx/tailwind-nextjs-starter-blog'
 
 ## Installation
 
+Requires **Node.js 20.9+** and **Yarn 3.x** (see `packageManager` in `package.json`). With Corepack: `corepack enable` then `corepack prepare`.
+
 ```bash
 yarn
 ```
@@ -144,6 +145,13 @@ yarn dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 Edit the layout in `app` or content in `data`. With live reloading, the pages auto-updates as you edit them.
+
+Lint and production build:
+
+```bash
+yarn lint
+yarn build
+```
 
 ## Extend / Customize
 
@@ -167,7 +175,7 @@ Edit the layout in `app` or content in `data`. With live reloading, the pages au
 
 `contentlayer.config.ts` - configuration for Contentlayer, including definition of content sources and MDX plugins used. See [Contentlayer documentation](https://www.contentlayer.dev/docs/getting-started) for more information.
 
-`components/MDXComponents.js` - pass your own JSX code or React component by specifying it over here. You can then use them directly in the `.mdx` or `.md` file. By default, a custom link, `next/image` component, table of contents component and Newsletter form are passed down. Note that the components should be default exported to avoid [existing issues with Next.js](https://github.com/vercel/next.js/issues/51593).
+`components/MDXComponents.tsx` - pass your own JSX code or React component by specifying it over here. You can then use them directly in the `.mdx` or `.md` file. By default, a custom link, `next/image` component, table of contents component and code `pre` styling are passed down. Note that the components should be default exported to avoid [existing issues with Next.js](https://github.com/vercel/next.js/issues/51593).
 
 `layouts` - main templates used in pages:
 

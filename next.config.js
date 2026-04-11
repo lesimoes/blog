@@ -55,25 +55,30 @@ const securityHeaders = [
 ]
 
 /**
- * @type {import('next/dist/next-server/server/config').NextConfig}
+ * @type {import('next').NextConfig}
  **/
 module.exports = () => {
   const plugins = [withContentlayer, withBundleAnalyzer]
   return plugins.reduce((acc, next) => next(acc), {
     reactStrictMode: true,
     pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
-    eslint: {
-      dirs: ['app', 'components', 'layouts', 'scripts'],
-    },
     images: {
-      domains: ['picsum.photos', 'plus.unsplash.com'],
+      remotePatterns: [
+        {
+          protocol: 'https',
+          hostname: 'picsum.photos',
+          pathname: '/**',
+        },
+        {
+          protocol: 'https',
+          hostname: 'plus.unsplash.com',
+          pathname: '/**',
+        },
+      ],
       unoptimized: process.env.NODE_ENV === 'development',
       formats: ['image/avif', 'image/webp'],
       deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
       imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    },
-    experimental: {
-      appDir: true,
     },
     async headers() {
       const headers = [

@@ -12,11 +12,12 @@ export const generateStaticParams = async () => {
   return paths
 }
 
-export default function BlogPtPaged({ params }: { params: { page: string } }) {
+export default async function BlogPtPaged({ params }: { params: Promise<{ page: string }> }) {
+  const { page } = await params
   const postsPt = allCoreContent(
     sortPosts(allBlogs.filter((post) => post.path.startsWith('blog/pt/')))
   )
-  const pageNumber = parseInt(params.page as string)
+  const pageNumber = parseInt(page as string)
   const initialDisplayPosts = postsPt.slice(
     POSTS_PER_PAGE * (pageNumber - 1),
     POSTS_PER_PAGE * pageNumber

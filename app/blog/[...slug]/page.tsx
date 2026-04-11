@@ -2,8 +2,7 @@ import 'css/prism.css'
 import 'katex/dist/katex.css'
 
 import PageTitle from '@/components/PageTitle'
-import { components } from '@/components/MDXComponents'
-import { MDXLayoutRenderer } from 'pliny/mdx-components'
+import { MDXBody } from '@/components/MDXBody'
 import { sortPosts, coreContent } from 'pliny/utils/contentlayer'
 import { allBlogs, allAuthors } from 'contentlayer/generated'
 import type { Authors, Blog } from 'contentlayer/generated'
@@ -24,9 +23,10 @@ const layouts = {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string[] }
+  params: Promise<{ slug: string[] }>
 }): Promise<Metadata | undefined> {
-  const slug = decodeURI(params.slug.join('/'))
+  const { slug: slugSegments } = await params
+  const slug = decodeURI(slugSegments.join('/'))
   const post = allBlogs.find((p) => p.slug === slug)
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
@@ -80,8 +80,9 @@ export const generateStaticParams = async () => {
   return paths
 }
 
-export default async function Page({ params }: { params: { slug: string[] } }) {
-  const slug = decodeURI(params.slug.join('/'))
+export default async function Page({ params }: { params: Promise<{ slug: string[] }> }) {
+  const { slug: slugSegments } = await params
+  const slug = decodeURI(slugSegments.join('/'))
   const sortedPosts = sortPosts(allBlogs) as Blog[]
   const postIndex = sortedPosts.findIndex((p) => p.slug === slug)
   const prev = coreContent(sortedPosts[postIndex + 1])
@@ -121,7 +122,7 @@ export default async function Page({ params }: { params: { slug: string[] } }) {
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
           <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev}>
-            <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
+            <MDXBody code={post.body.code} toc={post.toc} />
           </Layout>
         </>
       )}
