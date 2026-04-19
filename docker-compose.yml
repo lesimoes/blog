@@ -9,4 +9,4 @@ services:
     environment:
       NODE_ENV: production
     working_dir: /app
-    command: yarn start -p 3005
+    command: npm run serve -- -p 3005

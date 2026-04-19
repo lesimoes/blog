@@ -174,9 +174,9 @@ export default function BlogPage() {
 
 ### Scripts
 
-- `yarn dev` for development
-- `yarn build` for production build
-- `yarn lint` for ESLint checking
+- `npm run dev` for development
+- `npm run build` for production build
+- `npm run lint` for ESLint checking
 - Post-build script generates tag counts and search index
 
 ### Code Quality

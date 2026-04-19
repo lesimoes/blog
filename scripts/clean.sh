@@ -25,5 +25,5 @@ if [ -d ".contentlayer" ]; then
 fi
 
 echo ""
-echo "✨ Limpeza concluída! Agora você pode rodar 'yarn dev' ou 'npm run dev' novamente."
+echo "✨ Limpeza concluída! Agora você pode rodar 'npm run dev' novamente."
 
