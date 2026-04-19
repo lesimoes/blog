@@ -21,6 +21,9 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
+      "pliny/*": [
+        "node_modules/pliny/*"
+      ],
       "@/components/*": [
         "components/*"
       ],
