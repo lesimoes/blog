@@ -8,6 +8,7 @@ const POSTS_PER_PAGE = 5
 export const metadata = genPageMetadata({ title: 'Blog (EN)' })
 
 export default function BlogEnPage() {
+  console.log('[Blog EN] page render')
   const postsEn = allCoreContent(
     sortPosts(allBlogs.filter((post) => post.path.startsWith('blog/en/')))
   )
