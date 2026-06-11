@@ -6,7 +6,7 @@ const headerNavLinks = [
   // { href: '/tags', title: 'Tags' },
   // { href: '/projects', title: 'Projects' },
   { href: '/talks', title: 'Talks' },
-  { href: '/courses', title: 'Courses (🇧🇷)' },
+  // { href: '/courses', title: 'Courses (🇧🇷)' },
   { href: '/about', title: 'About' },
 ]
 
