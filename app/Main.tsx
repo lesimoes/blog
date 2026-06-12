@@ -5,7 +5,6 @@ import { Sentences } from './Sentences'
 const MAX_DISPLAY = 9
 
 export default function Home({ posts }) {
-  console.log(posts)
   return (
     <>
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
