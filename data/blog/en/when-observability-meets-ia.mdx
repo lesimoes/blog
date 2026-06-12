@@ -126,7 +126,11 @@ After receiving the user's question, I send it to the **LLM Planner**, which dec
 
 The response flow looks like this:
 
-![LLM Planner, Aggregate, RAG, and Answer Service](/static/images/observability_ia.png)
+<img
+  src="/static/images/observability_ia.png"
+  alt="LLM Planner, Aggregate, RAG, and Answer Service"
+  style={{ width: '50%' }}
+/>
 
 The planner uses `gpt-4o-mini` with zero temperature and returns structured JSON:
 
